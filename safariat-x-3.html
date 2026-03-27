@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>سفريات اكس - نقل ذكي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --card: #242424;
+    --accent: #ff6a00;
+    --accent2: #ff8c38;
+    --text: #f5f5f5;
+    --muted: #a0a0a0;
+    --border: rgba(255,106,0,0.2);
+    --glow: 0 4px 24px rgba(255,106,0,0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SPLASH SCREEN */
+  #splash {
+    position: fixed; inset: 0; z-index: 1000;
+    background: linear-gradient(160deg, #0f0f0f 0%, #1a1a1a 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    animation: fadeOutSplash 0.5s ease 2.5s forwards;
+  }
+
+  .splash-logo {
+    font-size: 20vw;
+    font-weight: 900;
+    color: #ff6a00;
+    -webkit-text-fill-color: #ff6a00;
+    background: none;
+    line-height: 1;
+    text-align: center;
+    width: 100%;
+  }
+
+  .splash-tagline {
+    color: var(--muted); font-size: 1.1rem; margin-top: 0.5rem;
+    animation: fadeIn 0.5s ease 1s both;
+  }
+
+  .splash-loader {
+    margin-top: 2rem; width: 120px; height: 3px;
+    background: var(--card); border-radius: 10px; overflow: hidden;
+    animation: fadeIn 0.5s ease 1.2s both;
+  }
+
+  .splash-loader-bar {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    animation: loadBar 1.5s ease 1.2s forwards;
+  }
+
+  @keyframes logoPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes loadBar { to { width: 100%; } }
+  @keyframes fadeOutSplash { to { opacity: 0; pointer-events: none; } }
+
+  /* MAIN APP */
+  #app { opacity: 0; animation: fadeIn 0.5s ease 3s forwards; }
+
+  /* TOP BAR */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 1rem 1.2rem;
+    background: linear-gradient(180deg, rgba(26,46,13,0.98) 0%, transparent 100%);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .topbar-brand {
+    font-size: 1.5rem; font-weight: 900;
+    color: #ff6a00;
+  }
+
+  .topbar-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff6a00, #ff8c38);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 700; color: #fff;
+    cursor: pointer;
+  }
+
+  .notif-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--card); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+  }
+
+  .notif-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  /* SCREENS */
+  .screen { display: none; min-height: 100vh; padding-bottom: 2rem; }
+  .screen.active { display: block; }
+
+  /* MAP SCREEN */
+  #screen-home { padding-top: 0; }
+
+  #map {
+    height: 50vh; width: 100%;
+    filter: brightness(0.85) saturate(1.2);
+  }
+
+  .map-overlay {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 50vh; pointer-events: none; z-index: 10;
+    background: linear-gradient(180deg, rgba(26,46,13,0.6) 0%, transparent 30%, transparent 70%, rgba(26,46,13,0.9) 100%);
+  }
+
+  .location-pill {
+    position: absolute; top: 4.5rem; left: 50%; transform: translateX(-50%);
+    z-index: 20; background: rgba(26,34,53,0.95);
+    border: 1px solid var(--border); border-radius: 50px;
+    padding: 0.6rem 1.2rem;
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.85rem; color: var(--text);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+  }
+
+  .loc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(168,230,61,0.5)} 50%{box-shadow:0 0 0 8px rgba(168,230,61,0)} }
+
+  /* BOOKING CARD */
+  .booking-card {
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+    margin-top: -1.5rem;
+    position: relative; z-index: 30;
+    padding: 1.5rem 1.2rem;
+    min-height: calc(50vh + 1.5rem);
+  }
+
+  .drag-handle {
+    width: 40px; height: 4px; border-radius: 10px;
+    background: var(--muted); margin: 0 auto 1.5rem;
+    opacity: 0.4;
+  }
+
+  .section-title {
+    font-size: 1.1rem; font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .input-group {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .input-row {
+    display: flex; align-items: center;
+    padding: 0.9rem 1rem; gap: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+
+  .input-row:last-child { border-bottom: none; }
+  .input-row:active { background: rgba(0,212,170,0.05); }
+
+  .input-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+  }
+
+  .icon-from { background: rgba(255,106,0,0.15); color: var(--accent); }
+  .icon-to { background: rgba(255,140,56,0.15); color: var(--accent2); }
+
+  .input-text { flex: 1; }
+  .input-label { font-size: 0.7rem; color: var(--muted); }
+  .input-value { font-size: 0.9rem; font-weight: 600; }
+
+  /* CAR TYPES */
+  .car-types {
+    display: flex; gap: 0.8rem;
+    margin-bottom: 1.2rem;
+    overflow-x: auto; padding-bottom: 0.3rem;
+  }
+
+  .car-type {
+    flex-shrink: 0; background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 14px; padding: 0.8rem 1rem;
+    text-align: center; cursor: pointer;
+    transition: all 0.25s; min-width: 90px;
+  }
+
+  .car-type.selected {
+    border-color: var(--accent);
+    background: rgba(0,212,170,0.1);
+    box-shadow: var(--glow);
+  }
+
+  .car-type-icon { font-size: 1.8rem; display: block; margin-bottom: 0.3rem; }
+  .car-type-name { font-size: 0.75rem; font-weight: 600; }
+  .car-type-price { font-size: 0.7rem; color: var(--accent); }
+
+  /* BOOK BTN */
+  .book-btn {
+    width: 100%; padding: 1rem;
+    background: linear-gradient(135deg, #ff6a00, #ff8c38);
+    border: none; border-radius: 16px;
+    color: #fff; font-family: 'Cairo', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: var(--glow);
+  }
+
+  .book-btn:active { transform: scale(0.97); }
+
+  /* RIDE TRACKING MODAL */
+  #tracking-modal {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(26,46,13,0.97);
+    display: none; flex-direction: column;
+    animation: slideUp 0.4s cubic-bezier(0.34,1.2,0.64,1);
+  }
+
+  #tracking-modal.visible { display: flex; }
+
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  #tracking-map { flex: 1; }
+
+  .tracking-card {
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+    padding: 1.5rem 1.2rem;
+    padding-bottom: 2rem;
+  }
+
+  .driver-info {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .driver-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; flex-shrink: 0;
+    border: 2px solid var(--accent);
+  }
+
+  .driver-name { font-size: 1rem; font-weight: 700; }
+  .driver-rating { font-size: 0.8rem; color: #fbbf24; }
+  .driver-car { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+  .driver-actions { margin-right: auto; display: flex; gap: 0.6rem; }
+
+  .action-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .action-btn:active { transform: scale(0.9); background: rgba(0,212,170,0.1); }
+
+  .status-bar {
+    background: var(--card); border-radius: 14px;
+    padding: 1rem; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+
+  .status-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(0,212,170,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .status-text { font-size: 0.85rem; font-weight: 600; }
+  .status-sub { font-size: 0.75rem; color: var(--accent); margin-top: 2px; }
+
+  .eta-pill {
+    margin-right: auto;
+    background: rgba(0,212,170,0.1);
+    border: 1px solid var(--accent);
+    border-radius: 50px; padding: 0.3rem 0.8rem;
+    font-size: 0.8rem; font-weight: 700; color: var(--accent);
+  }
+
+  .cancel-btn {
+    width: 100%; padding: 0.9rem;
+    background: transparent; border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 14px; color: var(--accent2);
+    font-family: 'Cairo', sans-serif; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+
+  .cancel-btn:active { background: rgba(255,107,53,0.1); }
+
+  /* BOTTOM NAV REMOVED - Using Side Menu only */
+
+  /* TRIPS SCREEN */
+  #screen-trips { padding: 5rem 1.2rem 1rem; }
+
+  .trips-header { margin-bottom: 1.5rem; }
+  .trips-header h1 { font-size: 1.5rem; font-weight: 900; }
+  .trips-header p { color: var(--muted); font-size: 0.85rem; }
+
+  .trip-card {
+    background: var(--card); border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 1rem; margin-bottom: 0.8rem;
+    display: flex; gap: 1rem; align-items: center;
+    transition: all 0.2s;
+  }
+
+  .trip-card:active { transform: scale(0.98); }
+
+  .trip-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+
+  .trip-icon.completed { background: rgba(0,212,170,0.15); }
+  .trip-icon.cancelled { background: rgba(255,107,53,0.15); }
+
+  .trip-info { flex: 1; }
+  .trip-route { font-size: 0.85rem; font-weight: 600; }
+  .trip-date { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .trip-price { font-size: 1rem; font-weight: 700; color: var(--accent); }
+
+  /* WALLET SCREEN */
+  #screen-wallet { padding: 5rem 1.2rem 1rem; }
+
+  .wallet-card {
+    background: linear-gradient(135deg, #ff6a00, #ff8c38);
+    border-radius: 24px; padding: 1.8rem;
+    margin-bottom: 1.5rem;
+    position: relative; overflow: hidden;
+  }
+
+  .wallet-card::before {
+    content: ''; position: absolute;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    top: -60px; left: -60px;
+  }
+
+  .wallet-card::after {
+    content: ''; position: absolute;
+    width: 150px; height: 150px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    bottom: -40px; right: -20px;
+  }
+
+  .wallet-label { font-size: 0.85rem; color: rgba(0,0,0,0.7); font-weight: 600; }
+  .wallet-balance { font-size: 2.8rem; font-weight: 900; color: #fff; line-height: 1; margin: 0.5rem 0; }
+  .wallet-sub { font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+
+  .wallet-actions { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; }
+
+  .wallet-btn {
+    flex: 1; padding: 0.9rem;
+    border-radius: 14px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text);
+    font-family: 'Cairo', sans-serif; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .wallet-btn:active { background: rgba(0,212,170,0.1); border-color: var(--accent); }
+
+  .transactions-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+  .transaction {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.9rem 0; border-bottom: 1px solid var(--border);
+  }
+
+  .tx-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+  }
+
+  .tx-icon.trip { background: rgba(0,212,170,0.1); }
+  .tx-icon.topup { background: rgba(255,107,53,0.1); }
+
+  .tx-info { flex: 1; }
+  .tx-title { font-size: 0.85rem; font-weight: 600; }
+  .tx-date { font-size: 0.72rem; color: var(--muted); }
+  .tx-amount { font-size: 0.9rem; font-weight: 700; }
+  .tx-amount.debit { color: var(--accent2); }
+  .tx-amount.credit { color: var(--accent); }
+
+  /* PROFILE SCREEN */
+  #screen-profile { padding: 5rem 1.2rem 1rem; }
+
+  .profile-hero {
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--card); border-radius: 20px;
+    padding: 1.2rem; margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+  }
+
+  .profile-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff6a00, #ff8c38);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 900; color: #fff;
+  }
+
+  .profile-name { font-size: 1.1rem; font-weight: 700; }
+  .profile-phone { font-size: 0.8rem; color: var(--muted); }
+  .profile-rating { font-size: 0.8rem; color: #fbbf24; margin-top: 3px; }
+
+  .menu-section { margin-bottom: 1rem; }
+  .menu-section-title { font-size: 0.75rem; color: var(--muted); font-weight: 600; margin-bottom: 0.6rem; padding-right: 0.3rem; }
+
+  .menu-item {
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--card); padding: 1rem;
+    border-radius: 14px; margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+    cursor: pointer; transition: all 0.2s;
+  }
+
+  .menu-item:active { background: rgba(0,212,170,0.05); }
+
+  .menu-item-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(0,212,170,0.1);
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+
+  .menu-item-text { flex: 1; font-size: 0.9rem; font-weight: 600; }
+  .menu-arrow { color: var(--muted); font-size: 0.8rem; }
+
+  /* INPUT MODAL */
+  .input-modal {
+    position: fixed; inset: 0; z-index: 400;
+    background: rgba(10,15,30,0.9);
+    display: none; align-items: flex-end;
+    backdrop-filter: blur(5px);
+  }
+
+  .input-modal.visible { display: flex; }
+
+  .input-modal-card {
+    background: var(--surface); width: 100%;
+    border-radius: 28px 28px 0 0; padding: 1.5rem;
+    animation: slideUp 0.3s ease;
+  }
+
+  .modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+  .modal-input {
+    width: 100%; background: var(--card);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 0.9rem 1rem; color: var(--text);
+    font-family: 'Cairo', sans-serif; font-size: 0.9rem;
+    outline: none; margin-bottom: 0.8rem;
+    transition: border-color 0.2s;
+  }
+
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-suggestions { margin-bottom: 1rem; }
+
+  .suggestion {
+    display: flex; align-items: center; gap: 0.8rem;
+    padding: 0.8rem; border-radius: 12px;
+    cursor: pointer; transition: background 0.2s;
+  }
+
+  .suggestion:active { background: rgba(0,212,170,0.05); }
+  .sug-icon { font-size: 1rem; color: var(--muted); }
+  .sug-text { font-size: 0.85rem; }
+  .sug-sub { font-size: 0.72rem; color: var(--muted); }
+
+  .modal-confirm {
+    width: 100%; padding: 0.9rem;
+    background: linear-gradient(135deg, #ff6a00, #ff8c38);
+    border: none; border-radius: 14px;
+    color: #fff; font-family: 'Cairo', sans-serif;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  }
+
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">سفريات</div>
+  <div class="splash-tagline">سافر بذكاء مع سفريات اكس 🚗</div>
+  <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div style="display:flex;gap:0.6rem;align-items:center">
+      <div class="notif-btn" onclick="toggleMenu()" aria-label="القائمة الجانبية" role="button">☰</div>
+      <div class="topbar-avatar" onclick="showScreen('profile')" aria-label="الملف الشخصي" role="button">أ</div>
+    </div>
+    <div class="topbar-brand" style="color:#ff6a00;font-size:1rem;margin-right:auto;margin-left:0;">سفريات اكس 🚗</div>
+  </div>
+
+  <!-- SIDE MENU -->
+  <div id="side-menu" style="position:fixed;top:0;right:0;width:70%;max-width:280px;height:100vh;background:var(--surface);z-index:999;transform:translateX(100%);transition:transform 0.3s ease;padding:2rem 1.2rem;border-left:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+      <div style="font-size:1.1rem;font-weight:900;color:#ff6a00;">سفريات اكس</div>
+      <div onclick="toggleMenu()" style="cursor:pointer;font-size:1.3rem;">✕</div>
+    </div>
+    <div onclick="showScreen('home');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🏠 <span>الرئيسية</span></div>
+    <div onclick="showScreen('trips');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🗺️ <span>رحلاتي</span></div>
+    <div onclick="showScreen('wallet');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">💳 <span>المحفظة</span></div>
+    <div onclick="showScreen('profile');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">👤 <span>حسابي</span></div>
+    <div onclick="openAdminPanel();toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:rgba(255,106,0,0.1);border:1px solid rgba(255,106,0,0.3);">🛡️ <span style="color:var(--accent2);font-weight:700;">لوحة الأدمن</span></div>
+  </div>
+  <div id="menu-overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:998;display:none;"></div>
+
+  <!-- HOME SCREEN -->
+  <div id="screen-home" class="screen active">
+    
+    <div style="position:relative">
+      <div id="map"></div>
+      <div class="map-overlay"></div>
+      <div class="location-pill">
+        <div class="loc-dot"></div>
+        <span id="location-text">جاري تحديد موقعك...</span>
+      </div>
+    </div>
+
+    <div class="booking-card">
+      <div class="drag-handle"></div>
+      <div class="section-title">إلى أين تريد الذهاب؟</div>
+
+      <div class="input-group">
+        <div class="input-row" onclick="openFromModal()">
+          <div class="input-icon icon-from">📍</div>
+          <div class="input-text">
+            <div class="input-label">محافظة الانطلاق</div>
+            <div class="input-value" id="from-text" style="color:var(--muted)">جاري تحديد موقعك...</div>
+          </div>
+          <span id="from-gps-icon" style="color:#ff6a00;font-size:0.85rem;font-weight:700;">GPS</span>
+        </div>
+        <div class="input-row" onclick="openInputModal('to')">
+          <div class="input-icon icon-to">🎯</div>
+          <div class="input-text">
+            <div class="input-label">الوجهة</div>
+            <div class="input-value" id="to-text" style="color:var(--muted)">اختر وجهتك</div>
+          </div>
+          <span style="color:var(--muted);font-size:0.8rem">›</span>
+        </div>
+      </div>
+
+      <!-- شريط تحديد الموقع -->
+      <div id="map-pick-bar" style="display:none;background:#ff6a00;color:white;text-align:center;padding:0.7rem;border-radius:12px;margin-bottom:0.8rem;font-size:0.9rem;font-weight:700;">
+        🎯 اضغط على الخريطة لتحديد الموقع
+        <span onclick="cancelMapPick()" style="float:left;cursor:pointer;font-size:1.1rem;">✕</span>
+      </div>
+
+      <div class="section-title">اختر نوع الرحلة</div>
+      <div class="car-types">
+        <div class="car-type selected" onclick="selectCar(this, 'سيدان', 10)">
+          <span class="car-type-icon">🚗</span>
+          <div class="car-type-name">سيدان</div>
+          <div class="car-type-price">10 ج.م/كم</div>
+        </div>
+        <div class="car-type" onclick="selectCar(this, '7 ركاب', 15)">
+          <span class="car-type-icon">🚙</span>
+          <div class="car-type-name">7 ركاب</div>
+          <div class="car-type-price">15 ج.م/كم</div>
+        </div>
+        <div class="car-type" onclick="selectCar(this, '14 راكب', 20)">
+          <span class="car-type-icon">🚌</span>
+          <div class="car-type-name">14 راكب</div>
+          <div class="car-type-price">20 ج.م/كم</div>
+        </div>
+      </div>
+
+      <div id="price-card" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:1rem;animation:fadeIn 0.3s ease;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:0.75rem;color:var(--muted);">المسافة</div>
+            <div id="km-display" style="font-size:1rem;font-weight:700;">-- كم</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:0.75rem;color:var(--muted);">السعر الإجمالي</div>
+            <div id="price-est" style="font-size:1.5rem;font-weight:900;color:var(--accent);">-- ج.م</div>
+          </div>
+          <div style="text-align:left;">
+            <div style="font-size:0.75rem;color:var(--muted);">الوقت</div>
+            <div id="time-display" style="font-size:1rem;font-weight:700;">-- دقيقة</div>
+          </div>
+        </div>
+        <div id="price-detail" style="font-size:0.75rem;color:var(--muted);margin-top:0.5rem;text-align:center;"></div>
+      </div>
+
+      <button class="book-btn" onclick="openClientModal()">🚗 احجز الآن</button>
+    </div>
+  </div>
+
+  <!-- MODAL تغيير كلمة السر -->
+  <div id="change-pass-modal" style="position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="background:var(--surface);border-radius:24px;padding:1.5rem;width:100%;max-width:360px;border:1px solid var(--border);">
+      <div style="font-size:1.1rem;font-weight:900;margin-bottom:1.2rem;text-align:center;">🔑 تغيير كلمة السر</div>
+      <input id="cp-current" type="password" placeholder="كلمة السر الحالية"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="cp-new" type="password" placeholder="كلمة السر الجديدة (6 أحرف على الأقل)"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="cp-confirm" type="password" placeholder="تأكيد كلمة السر الجديدة"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.5rem;display:block;">
+      <div id="cp-error" style="color:#ff4444;font-size:0.8rem;min-height:1.2rem;margin-bottom:0.8rem;text-align:center;"></div>
+      <div style="display:flex;gap:0.8rem;">
+        <button onclick="closeChangePassModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+        <button onclick="confirmChangePass()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#ff6a00,#ff8c38);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- شاشة التعرف على الوجه -->
+  <div id="face-modal" style="position:fixed;inset:0;z-index:800;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;">
+    <div style="position:relative;width:300px;height:300px;border-radius:50%;overflow:hidden;border:4px solid #ff6a00;margin-bottom:1.5rem;box-shadow:0 0 30px rgba(255,106,0,0.5);">
+      <video id="face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+      <canvas id="face-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);"></canvas>
+    </div>
+    <div id="face-status" style="color:white;font-size:1rem;font-weight:700;margin-bottom:1rem;text-align:center;">📸 جاري تحميل نظام التعرف...</div>
+    <div id="face-progress" style="width:200px;height:6px;background:rgba(255,255,255,0.2);border-radius:10px;overflow:hidden;margin-bottom:1.5rem;">
+      <div id="face-bar" style="height:100%;width:0%;background:#ff6a00;border-radius:10px;transition:width 0.3s;"></div>
+    </div>
+    <div style="display:flex;gap:1rem;">
+      <button id="face-register-btn" onclick="registerFace()" style="display:none;padding:0.8rem 1.5rem;background:#ff6a00;border:none;border-radius:12px;color:white;font-family:'Cairo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">📸 تسجيل وجهك</button>
+      <button onclick="closeFaceModal()" style="padding:0.8rem 1.5rem;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:12px;color:white;font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+    </div>
+    <div style="margin-top:1rem;color:rgba(255,255,255,0.5);font-size:0.75rem;">يتم التحقق عند كل فتح للتطبيق</div>
+  </div>
+  <div id="client-modal" style="position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.6);display:none;align-items:flex-end;">
+    <div style="background:var(--surface);width:100%;border-radius:28px 28px 0 0;padding:1.5rem;animation:slideUp 0.3s ease;">
+      <div style="text-align:center;margin-bottom:1.2rem;">
+        <div style="font-size:1.2rem;font-weight:900;">📋 بيانات الحجز</div>
+        <div style="font-size:0.8rem;color:var(--muted);">أدخل بياناتك لإتمام الحجز</div>
+      </div>
+      <input id="client-name" type="text" placeholder="الاسم الكامل" 
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="client-phone" type="tel" placeholder="رقم التليفون" 
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:1rem;display:block;">
+      
+      <!-- ملخص الرحلة -->
+      <div style="background:var(--card);border-radius:14px;padding:1rem;margin-bottom:1rem;border:1px solid var(--border);">
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.6rem;color:var(--muted);">ملخص الرحلة</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>📍 الانطلاق</span><span id="sum-from" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>🎯 الوجهة</span><span id="sum-to" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>🚗 نوع السيارة</span><span id="sum-car" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);">
+          <span style="font-weight:700;">💰 السعر</span><span id="sum-price" style="font-weight:900;color:var(--accent);font-size:1rem;"></span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.8rem;">
+        <button onclick="closeClientModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+        <button onclick="confirmBooking()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#ff6a00,#ff8c38);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد الحجز</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- لوحة الأدمن -->
+  <div id="admin-panel" style="position:fixed;inset:0;z-index:700;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;">
+    <div style="background:var(--surface);padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
+      <button onclick="closeAdminPanel()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.9rem;color:var(--text);font-family:'Cairo',sans-serif;cursor:pointer;">← رجوع</button>
+      <div style="font-size:1.1rem;font-weight:900;">🛡️ لوحة الأدمن</div>
+      <div id="bookings-count" style="margin-right:auto;background:var(--accent);color:#fff;border-radius:50px;padding:0.2rem 0.8rem;font-size:0.8rem;font-weight:700;"></div>
+      <button onclick="changeAdminPassword()" style="background:rgba(255,106,0,0.1);border:1px solid var(--accent2);border-radius:10px;padding:0.5rem 0.9rem;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.8rem;cursor:pointer;">🔑 تغيير السر</button>
+    </div>
+    <div style="padding:1rem;">
+      <div id="bookings-list"></div>
+      <div id="no-bookings" style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:3rem;">📋</div>
+        <div>لا توجد حجوزات بعد</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRIPS SCREEN -->
+  <div id="screen-trips" class="screen">
+    <div class="trips-header">
+      <h1>رحلاتي</h1>
+      <p>سجل رحلاتك السابقة</p>
+    </div>
+    <div id="trips-list"></div>
+    <div id="no-trips" style="text-align:center;padding:3rem;color:var(--muted);display:none;">
+      <div style="font-size:3rem;">🗺️</div>
+      <div style="margin-top:0.5rem;">لا توجد رحلات بعد</div>
+      <div style="font-size:0.8rem;margin-top:0.3rem;">احجز رحلتك الأولى الآن!</div>
+    </div>
+  </div>
+
+  <!-- WALLET SCREEN -->
+  <div id="screen-wallet" class="screen">
+    <div class="wallet-card">
+      <div class="wallet-label">رصيدك الحالي</div>
+      <div class="wallet-balance">350 ج.م</div>
+      <div class="wallet-sub">محفظة سفريات اكس الإلكترونية</div>
+    </div>
+
+    <div class="wallet-actions">
+      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">➕ شحن الرصيد</button>
+      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">💳 طرق الدفع</button>
+      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">🎁 الكوبونات</button>
+    </div>
+
+    <div class="transactions-title">آخر المعاملات</div>
+
+    <div class="transaction">
+      <div class="tx-icon trip">🚗</div>
+      <div class="tx-info">
+        <div class="tx-title">رحلة المعادي</div>
+        <div class="tx-date">اليوم، 10:30 ص</div>
+      </div>
+      <div class="tx-amount debit">-85 ج.م</div>
+    </div>
+
+    <div class="transaction">
+      <div class="tx-icon topup">💰</div>
+      <div class="tx-info">
+        <div class="tx-title">شحن رصيد</div>
+        <div class="tx-date">أمس، 9:00 ص</div>
+      </div>
+      <div class="tx-amount credit">+200 ج.م</div>
+    </div>
+
+    <div class="transaction">
+      <div class="tx-icon trip">🚗</div>
+      <div class="tx-info">
+        <div class="tx-title">رحلة مدينة نصر</div>
+        <div class="tx-date">أمس، 7:15 م</div>
+      </div>
+      <div class="tx-amount debit">-120 ج.م</div>
+    </div>
+
+    <div class="transaction">
+      <div class="tx-icon trip">🚌</div>
+      <div class="tx-info">
+        <div class="tx-title">رحلة حلوان</div>
+        <div class="tx-date">25 فبراير</div>
+      </div>
+      <div class="tx-amount debit">-40 ج.م</div>
+    </div>
+  </div>
+
+  <!-- PROFILE SCREEN -->
+  <div id="screen-profile" class="screen">
+    <div class="profile-hero">
+      <div class="profile-avatar">أ</div>
+      <div>
+        <div class="profile-name">أحمد محمود</div>
+        <div class="profile-phone">+20 1234567890</div>
+        <div class="profile-rating">⭐ 4.9 • 47 رحلة</div>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">الحساب</div>
+      <div class="menu-item"><div class="menu-item-icon">👤</div><div class="menu-item-text">تعديل الملف الشخصي</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item"><div class="menu-item-icon">🔔</div><div class="menu-item-text">الإشعارات</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item"><div class="menu-item-icon">🔒</div><div class="menu-item-text">الأمان والخصوصية</div><div class="menu-arrow">›</div></div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">المساعدة</div>
+      <div class="menu-item"><div class="menu-item-icon">💬</div><div class="menu-item-text">الدعم الفني</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item"><div class="menu-item-icon">❓</div><div class="menu-item-text">الأسئلة الشائعة</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item"><div class="menu-item-icon">⭐</div><div class="menu-item-text">قيّم التطبيق</div><div class="menu-arrow">›</div></div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">أخرى</div>
+      <div class="menu-item"><div class="menu-item-icon">🚗</div><div class="menu-item-text">انضم كسائق</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" style="border-color:rgba(255,107,53,0.2)"><div class="menu-item-icon" style="background:rgba(255,107,53,0.1)">🚪</div><div class="menu-item-text" style="color:var(--accent2)">تسجيل الخروج</div></div>
+    </div>
+  </div>
+
+
+
+</div><!-- /app -->
+
+<!-- TRACKING MODAL -->
+<div id="tracking-modal">
+  <div id="tracking-map"></div>
+  <div class="tracking-card">
+    <div class="driver-info">
+      <div class="driver-avatar">👨</div>
+      <div>
+        <div class="driver-name">محمد علي السيد</div>
+        <div class="driver-rating">⭐ 4.8 • 312 رحلة</div>
+        <div class="driver-car">تويوتا كورولا • ن ي ص 2024</div>
+      </div>
+      <div class="driver-actions">
+        <div class="action-btn" onclick="showToast('جاري الاتصال... 📞')" aria-label="اتصال">📞</div>
+        <div class="action-btn" onclick="showToast('الرسائل قريباً! 💬')" aria-label="رسائل">💬</div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-icon">🚗</div>
+      <div>
+        <div class="status-text" id="status-text">السائق في الطريق إليك</div>
+        <div class="status-sub" id="status-sub">يتحرك نحو موقعك</div>
+      </div>
+      <div class="eta-pill" id="eta-pill">5 د</div>
+    </div>
+
+    <button class="cancel-btn" onclick="cancelRide()">إلغاء الرحلة</button>
+  </div>
+</div>
+
+<!-- CANCEL RIDE MODAL -->
+<div id="cancel-ride-modal" style="position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:var(--surface);border-radius:24px;padding:1.5rem;width:100%;max-width:320px;border:1px solid var(--border);text-align:center;">
+    <div style="font-size:2rem;margin-bottom:0.8rem;">🚫</div>
+    <div style="font-size:1rem;font-weight:700;margin-bottom:0.5rem;">إلغاء الرحلة؟</div>
+    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:1.2rem;">هل أنت متأكد إنك عايز تلغي الرحلة؟</div>
+    <div style="display:flex;gap:0.8rem;">
+      <button onclick="dismissCancelRide()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">لا، رجوع</button>
+      <button onclick="confirmCancelRide()" style="flex:1;padding:0.9rem;background:rgba(255,60,60,0.15);border:1px solid rgba(255,60,60,0.4);border-radius:14px;color:#ff4444;font-family:'Cairo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">نعم، إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT MODAL -->
+<div class="input-modal" id="input-modal" onclick="closeInputModal(event)">
+  <div class="input-modal-card">
+    <div class="modal-title" id="modal-title">اختر نقطة الانطلاق</div>
+    <input class="modal-input" placeholder="ابحث باسم المحافظة..." id="modal-input" oninput="filterSuggestions(this.value)" autocomplete="off">
+    <div class="modal-suggestions" id="modal-suggestions" style="max-height:280px;overflow-y:auto;">
+      <div class="suggestion" onclick="selectLocation('القاهرة')"><span class="sug-icon">📍</span><div><div class="sug-text">القاهرة</div><div class="sug-sub">العاصمة</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الإسكندرية')"><span class="sug-icon">📍</span><div><div class="sug-text">الإسكندرية</div><div class="sug-sub">عروس البحر المتوسط</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الجيزة')"><span class="sug-icon">📍</span><div><div class="sug-text">الجيزة</div><div class="sug-sub">محافظة الجيزة</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الشرقية')"><span class="sug-icon">📍</span><div><div class="sug-text">الشرقية</div><div class="sug-sub">محافظة الشرقية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الدقهلية')"><span class="sug-icon">📍</span><div><div class="sug-text">الدقهلية</div><div class="sug-sub">محافظة الدقهلية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('البحيرة')"><span class="sug-icon">📍</span><div><div class="sug-text">البحيرة</div><div class="sug-sub">محافظة البحيرة</div></div></div>
+      <div class="suggestion" onclick="selectLocation('المنوفية')"><span class="sug-icon">📍</span><div><div class="sug-text">المنوفية</div><div class="sug-sub">محافظة المنوفية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('القليوبية')"><span class="sug-icon">📍</span><div><div class="sug-text">القليوبية</div><div class="sug-sub">محافظة القليوبية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الغربية')"><span class="sug-icon">📍</span><div><div class="sug-text">الغربية</div><div class="sug-sub">محافظة الغربية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('كفر الشيخ')"><span class="sug-icon">📍</span><div><div class="sug-text">كفر الشيخ</div><div class="sug-sub">محافظة كفر الشيخ</div></div></div>
+      <div class="suggestion" onclick="selectLocation('دمياط')"><span class="sug-icon">📍</span><div><div class="sug-text">دمياط</div><div class="sug-sub">محافظة دمياط</div></div></div>
+      <div class="suggestion" onclick="selectLocation('بورسعيد')"><span class="sug-icon">📍</span><div><div class="sug-text">بورسعيد</div><div class="sug-sub">محافظة بورسعيد</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الإسماعيلية')"><span class="sug-icon">📍</span><div><div class="sug-text">الإسماعيلية</div><div class="sug-sub">محافظة الإسماعيلية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('السويس')"><span class="sug-icon">📍</span><div><div class="sug-text">السويس</div><div class="sug-sub">محافظة السويس</div></div></div>
+      <div class="suggestion" onclick="selectLocation('سيناء الشمالية')"><span class="sug-icon">📍</span><div><div class="sug-text">سيناء الشمالية</div><div class="sug-sub">محافظة شمال سيناء</div></div></div>
+      <div class="suggestion" onclick="selectLocation('سيناء الجنوبية')"><span class="sug-icon">📍</span><div><div class="sug-text">سيناء الجنوبية</div><div class="sug-sub">محافظة جنوب سيناء</div></div></div>
+      <div class="suggestion" onclick="selectLocation('البحر الأحمر')"><span class="sug-icon">📍</span><div><div class="sug-text">البحر الأحمر</div><div class="sug-sub">محافظة البحر الأحمر</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الفيوم')"><span class="sug-icon">📍</span><div><div class="sug-text">الفيوم</div><div class="sug-sub">محافظة الفيوم</div></div></div>
+      <div class="suggestion" onclick="selectLocation('بني سويف')"><span class="sug-icon">📍</span><div><div class="sug-text">بني سويف</div><div class="sug-sub">محافظة بني سويف</div></div></div>
+      <div class="suggestion" onclick="selectLocation('المنيا')"><span class="sug-icon">📍</span><div><div class="sug-text">المنيا</div><div class="sug-sub">محافظة المنيا</div></div></div>
+      <div class="suggestion" onclick="selectLocation('أسيوط')"><span class="sug-icon">📍</span><div><div class="sug-text">أسيوط</div><div class="sug-sub">محافظة أسيوط</div></div></div>
+      <div class="suggestion" onclick="selectLocation('سوهاج')"><span class="sug-icon">📍</span><div><div class="sug-text">سوهاج</div><div class="sug-sub">محافظة سوهاج</div></div></div>
+      <div class="suggestion" onclick="selectLocation('قنا')"><span class="sug-icon">📍</span><div><div class="sug-text">قنا</div><div class="sug-sub">محافظة قنا</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الأقصر')"><span class="sug-icon">📍</span><div><div class="sug-text">الأقصر</div><div class="sug-sub">محافظة الأقصر</div></div></div>
+      <div class="suggestion" onclick="selectLocation('أسوان')"><span class="sug-icon">📍</span><div><div class="sug-text">أسوان</div><div class="sug-sub">محافظة أسوان</div></div></div>
+      <div class="suggestion" onclick="selectLocation('مطروح')"><span class="sug-icon">📍</span><div><div class="sug-text">مطروح</div><div class="sug-sub">محافظة مطروح</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الوادي الجديد')"><span class="sug-icon">📍</span><div><div class="sug-text">الوادي الجديد</div><div class="sug-sub">محافظة الوادي الجديد</div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// MAP INIT
+let map, trackingMap, driverMarker, userMarker;
+let currentInput = 'to';
+let selectedLocation = '';
+let carPrice = 15;
+
+// Init main map
+let fromMarker = null;
+let destMarkerGlobal = null;
+let userLat = 30.0444, userLng = 31.2357;
+
+function initMap() {
+  map = L.map('map', { zoomControl: false, attributionControl: false }).setView([30.0444, 31.2357], 13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+  document.getElementById('location-text').textContent = '📡 جاري تحديد موقعك...';
+  document.getElementById('from-text').textContent = 'جاري تحديد موقعك...';
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      map.setView([userLat, userLng], 9);
+
+      // حدد أقرب محافظة للموقع
+      const nearest = getNearestGov(userLat, userLng);
+      if (fromMarker) map.removeLayer(fromMarker);
+      fromMarker = L.marker([userLat, userLng], { icon: makeFromIcon() }).addTo(map);
+      fromMarker.bindPopup(`<b>📍 موقعك: ${nearest}</b>`).openPopup();
+
+      document.getElementById('location-text').textContent = '📍 ' + nearest;
+      document.getElementById('from-text').textContent = nearest;
+      document.getElementById('from-text').style.color = 'var(--text)';
+      document.getElementById('from-gps-icon').textContent = '✓';
+      autoCalcPrice();
+    }, () => {
+      document.getElementById('location-text').textContent = '📍 القاهرة، مصر';
+      document.getElementById('from-text').textContent = 'القاهرة';
+      document.getElementById('from-text').style.color = 'var(--text)';
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  } else {
+    document.getElementById('location-text').textContent = '📍 القاهرة، مصر';
+    document.getElementById('from-text').textContent = 'القاهرة';
+    document.getElementById('from-text').style.color = 'var(--text)';
+  }
+}
+
+// إيجاد أقرب محافظة من إحداثيات GPS
+function getNearestGov(lat, lng) {
+  let nearest = 'القاهرة';
+  let minDist = Infinity;
+  for (const [name, coords] of Object.entries(govCoords)) {
+    const d = Math.sqrt(Math.pow(lat - coords[0], 2) + Math.pow(lng - coords[1], 2));
+    if (d < minDist) { minDist = d; nearest = name; }
+  }
+  return nearest;
+}
+
+// فتح modal الانطلاق مع خيار GPS أو يدوي
+function openFromModal() {
+  currentInput = 'from';
+  document.getElementById('modal-title').textContent = 'اختر محافظة الانطلاق';
+  // أضف زر GPS في أول القائمة
+  const sugBox = document.getElementById('modal-suggestions');
+  const gpsBtnId = 'gps-suggestion';
+  if (!document.getElementById(gpsBtnId)) {
+    const gpsDiv = document.createElement('div');
+    gpsDiv.id = gpsBtnId;
+    gpsDiv.className = 'suggestion';
+    gpsDiv.style.background = 'rgba(255,106,0,0.1)';
+    gpsDiv.style.borderRadius = '10px';
+    gpsDiv.style.marginBottom = '0.5rem';
+    gpsDiv.innerHTML = `<span class="sug-icon">📡</span><div><div class="sug-text" style="color:#ff6a00;font-weight:700;">تحديد تلقائي من GPS</div><div class="sug-sub">موقعك الحالي</div></div>`;
+    gpsDiv.onclick = () => {
+      useGPSForFrom();
+      document.getElementById('input-modal').classList.remove('visible');
+    };
+    sugBox.insertBefore(gpsDiv, sugBox.firstChild);
+  }
+  document.getElementById('input-modal').classList.add('visible');
+  document.getElementById('modal-input').value = '';
+  filterSuggestions('');
+}
+
+function useGPSForFrom() {
+  if (!navigator.geolocation) {
+    showToast('GPS غير متاح على جهازك');
+    return;
+  }
+  showToast('📡 جاري تحديد موقعك...');
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    const nearest = getNearestGov(userLat, userLng);
+    document.getElementById('from-text').textContent = nearest;
+    document.getElementById('from-text').style.color = 'var(--text)';
+    document.getElementById('from-gps-icon').textContent = '✓';
+    document.getElementById('location-text').textContent = '📍 ' + nearest;
+    if (fromMarker) map.removeLayer(fromMarker);
+    fromMarker = L.marker([userLat, userLng], { icon: makeFromIcon() }).addTo(map);
+    map.setView([userLat, userLng], 9);
+    autoCalcPrice();
+    showToast('✅ تم تحديد موقعك: ' + nearest);
+  }, () => {
+    showToast('❌ تعذر تحديد الموقع، اختر يدوياً');
+  }, { enableHighAccuracy: true, timeout: 8000 });
+}
+
+function makeFromIcon() {
+  return L.divIcon({
+    html: `<div style="width:18px;height:18px;background:#ff6a00;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(255,106,0,0.8)"></div>`,
+    iconSize: [18, 18], iconAnchor: [9, 9]
+  });
+}
+
+function makeDestIcon() {
+  return L.divIcon({
+    html: `<div style="width:18px;height:18px;background:#ff6a00;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(255,106,0,0.8)"></div>`,
+    iconSize: [18, 18], iconAnchor: [9, 9]
+  });
+}
+
+function centerMapOnGov(name) {
+  if (!map || !govCoords[name]) return;
+  const coords = govCoords[name];
+
+  if (fromMarker) map.removeLayer(fromMarker);
+  fromMarker = L.marker(coords, { icon: makeFromIcon() }).addTo(map);
+  fromMarker.bindPopup(`
+    <b>📍 الانطلاق: ${name}</b><br><br>
+    <button onclick="openGoogleMaps(${coords[0]},${coords[1]})" 
+      style="background:#ff6a00;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
+      🗺️ افتح في Google Maps
+    </button>
+  `).openPopup();
+  map.setView(coords, 9);
+  userLat = coords[0];
+  userLng = coords[1];
+}
+
+function showBothMarkers(toName) {
+  if (!map || !govCoords[toName]) return;
+
+  if (destMarkerGlobal) map.removeLayer(destMarkerGlobal);
+
+  const destCoords = govCoords[toName];
+  destMarkerGlobal = L.marker(destCoords, { icon: makeDestIcon() }).addTo(map);
+  destMarkerGlobal.bindPopup(`
+    <b>🎯 الوجهة: ${toName}</b><br><br>
+    <button onclick="openGoogleMaps(${destCoords[0]},${destCoords[1]})"
+      style="background:#ff6a00;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
+      🗺️ افتح في Google Maps
+    </button>
+  `).openPopup();
+
+  if (userLat && userLng) {
+    const bounds = L.latLngBounds([[userLat, userLng], destCoords]);
+    map.fitBounds(bounds, { padding: [80, 80] });
+  } else {
+    map.setView(destCoords, 9);
+  }
+}
+
+function initTrackingMap() {
+  if (trackingMap) return;
+  trackingMap = L.map('tracking-map', { zoomControl: false, attributionControl: false }).setView([30.0444, 31.2357], 14);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(trackingMap);
+
+  const driverIcon = L.divIcon({
+    html: `<div style="font-size:24px;transform:translateY(-50%)">🚗</div>`,
+    iconSize: [30, 30], iconAnchor: [15, 15]
+  });
+
+  const destIcon = L.divIcon({
+    html: `<div style="width:14px;height:14px;background:#ff6b35;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(255,107,53,0.8)"></div>`,
+    iconSize: [14, 14], iconAnchor: [7, 7]
+  });
+
+  driverMarker = L.marker([30.048, 31.230], { icon: driverIcon }).addTo(trackingMap);
+  L.marker([30.044, 31.236], { icon: destIcon }).addTo(trackingMap);
+
+  // Animate driver
+  animateDriver();
+}
+
+function animateDriver() {
+  const points = [
+    [30.048, 31.230], [30.047, 31.232], [30.046, 31.234],
+    [30.0455, 31.235], [30.0444, 31.2357]
+  ];
+  let i = 0;
+  let eta = 5;
+  
+  const interval = setInterval(() => {
+    if (!driverMarker || i >= points.length - 1) {
+      clearInterval(interval);
+      document.getElementById('status-text').textContent = 'السائق وصل! 🎉';
+      document.getElementById('status-sub').textContent = 'توجه إلى السيارة';
+      document.getElementById('eta-pill').textContent = 'وصل';
+      return;
+    }
+    i++;
+    eta = Math.max(1, eta - 1);
+    driverMarker.setLatLng(points[i]);
+    trackingMap.panTo(points[i]);
+    document.getElementById('eta-pill').textContent = eta + ' د';
+  }, 2000);
+}
+
+// SCREENS
+// TOAST NOTIFICATION
+function showToast(msg) {
+  let toast = document.getElementById('toast-msg');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast-msg';
+    toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:0.7rem 1.2rem;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:opacity 0.3s;white-space:nowrap;font-family:Cairo,sans-serif;border:1px solid rgba(255,106,0,0.3);';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (name === 'home' && !map) initMap();
+  if (name === 'trips') renderTrips();
+}
+
+function renderTrips() {
+  const list = document.getElementById('trips-list');
+  const noTrips = document.getElementById('no-trips');
+  if (!bookings || bookings.length === 0) {
+    list.innerHTML = '';
+    noTrips.style.display = 'block';
+    return;
+  }
+  noTrips.style.display = 'none';
+  const carIcon = { 'سيدان':'🚗', '7 ركاب':'🚙', '14 راكب':'🚌', 'VIP':'⭐' };
+  list.innerHTML = [...bookings].reverse().map(b => {
+    const isCancelled = b.status === 'ملغي';
+    const statusColor = isCancelled ? 'var(--accent2)' : 'var(--accent)';
+    const statusLabel = isCancelled ? 'ملغاة ✗' : (b.status === 'جديد' ? 'جديد 🕐' : 'مكتملة ✓');
+    const icon = carIcon[b.car] || '🚗';
+    return `
+      <div class="trip-card">
+        <div class="trip-icon ${isCancelled ? 'cancelled' : 'completed'}">${icon}</div>
+        <div class="trip-info">
+          <div class="trip-route">${b.from} ← ${b.to}</div>
+          <div class="trip-date">${b.time} • ${b.car} • ${b.km}</div>
+        </div>
+        <div>
+          <div class="trip-price">${isCancelled ? '--' : b.price}</div>
+          <div style="font-size:0.68rem;color:${statusColor};text-align:left">${statusLabel}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// CAR SELECTION
+
+// جدول المسافات الحقيقية بين المحافظات (بالكيلومتر)
+const distances = {
+  'القاهرة':        { 'الإسكندرية':220,'الجيزة':20,'الشرقية':90,'الدقهلية':120,'البحيرة':180,'المنوفية':80,'القليوبية':30,'الغربية':110,'كفر الشيخ':160,'دمياط':195,'بورسعيد':170,'الإسماعيلية':120,'السويس':135,'سيناء الشمالية':230,'سيناء الجنوبية':400,'البحر الأحمر':320,'الفيوم':100,'بني سويف':130,'المنيا':245,'أسيوط':380,'سوهاج':465,'قنا':580,'الأقصر':650,'أسوان':880,'مطروح':490,'الوادي الجديد':550 },
+  'الإسكندرية':    { 'القاهرة':220,'الجيزة':230,'الشرقية':290,'الدقهلية':200,'البحيرة':60,'المنوفية':150,'القليوبية':240,'الغربية':140,'كفر الشيخ':100,'دمياط':230,'بورسعيد':320,'الإسماعيلية':310,'السويس':340,'سيناء الشمالية':410,'سيناء الجنوبية':590,'البحر الأحمر':510,'الفيوم':300,'بني سويف':330,'المنيا':440,'أسيوط':575,'سوهاج':660,'قنا':775,'الأقصر':840,'أسوان':1070,'مطروح':300,'الوادي الجديد':680 },
+  'الجيزة':        { 'القاهرة':20,'الإسكندرية':230,'الشرقية':100,'الدقهلية':130,'البحيرة':190,'المنوفية':90,'القليوبية':40,'الغربية':120,'كفر الشيخ':170,'دمياط':205,'بورسعيد':180,'الإسماعيلية':130,'السويس':145,'سيناء الشمالية':240,'سيناء الجنوبية':410,'البحر الأحمر':330,'الفيوم':85,'بني سويف':115,'المنيا':230,'أسيوط':365,'سوهاج':450,'قنا':565,'الأقصر':635,'أسوان':865,'مطروح':475,'الوادي الجديد':535 },
+  'الشرقية':       { 'القاهرة':90,'الإسكندرية':290,'الجيزة':100,'الدقهلية':80,'البحيرة':200,'المنوفية':100,'القليوبية':70,'الغربية':130,'كفر الشيخ':160,'دمياط':140,'بورسعيد':100,'الإسماعيلية':80,'السويس':110,'سيناء الشمالية':160,'سيناء الجنوبية':380,'البحر الأحمر':280,'الفيوم':190,'بني سويف':220,'المنيا':335,'أسيوط':470,'سوهاج':555,'قنا':670,'الأقصر':740,'أسوان':970,'مطروح':510,'الوادي الجديد':580 },
+  'الدقهلية':      { 'القاهرة':120,'الإسكندرية':200,'الجيزة':130,'الشرقية':80,'البحيرة':160,'المنوفية':90,'القليوبية':100,'الغربية':80,'كفر الشيخ':90,'دمياط':60,'بورسعيد':130,'الإسماعيلية':150,'السويس':200,'سيناء الشمالية':250,'سيناء الجنوبية':470,'البحر الأحمر':370,'الفيوم':220,'بني سويف':250,'المنيا':365,'أسيوط':500,'سوهاج':585,'قنا':700,'الأقصر':770,'أسوان':1000,'مطروح':430,'الوادي الجديد':610 },
+  'البحيرة':       { 'القاهرة':180,'الإسكندرية':60,'الجيزة':190,'الشرقية':200,'الدقهلية':160,'المنوفية':110,'القليوبية':190,'الغربية':90,'كفر الشيخ':80,'دمياط':195,'بورسعيد':290,'الإسماعيلية':280,'السويس':310,'سيناء الشمالية':380,'سيناء الجنوبية':560,'البحر الأحمر':480,'الفيوم':270,'بني سويف':300,'المنيا':415,'أسيوط':550,'سوهاج':635,'قنا':750,'الأقصر':820,'أسوان':1050,'مطروح':260,'الوادي الجديد':655 },
+  'المنوفية':      { 'القاهرة':80,'الإسكندرية':150,'الجيزة':90,'الشرقية':100,'الدقهلية':90,'البحيرة':110,'القليوبية':70,'الغربية':50,'كفر الشيخ':100,'دمياط':155,'بورسعيد':230,'الإسماعيلية':200,'السويس':230,'سيناء الشمالية':300,'سيناء الجنوبية':480,'البحر الأحمر':400,'الفيوم':175,'بني سويف':205,'المنيا':320,'أسيوط':455,'سوهاج':540,'قنا':655,'الأقصر':725,'أسوان':955,'مطروح':380,'الوادي الجديد':560 },
+  'القليوبية':     { 'القاهرة':30,'الإسكندرية':240,'الجيزة':40,'الشرقية':70,'الدقهلية':100,'البحيرة':190,'المنوفية':70,'الغربية':110,'كفر الشيخ':150,'دمياط':175,'بورسعيد':155,'الإسماعيلية':120,'السويس':155,'سيناء الشمالية':220,'سيناء الجنوبية':420,'البحر الأحمر':330,'الفيوم':125,'بني سويف':155,'المنيا':270,'أسيوط':405,'سوهاج':490,'قنا':605,'الأقصر':675,'أسوان':905,'مطروح':480,'الوادي الجديد':565 },
+  'الغربية':       { 'القاهرة':110,'الإسكندرية':140,'الجيزة':120,'الشرقية':130,'الدقهلية':80,'البحيرة':90,'المنوفية':50,'القليوبية':110,'كفر الشيخ':70,'دمياط':135,'بورسعيد':240,'الإسماعيلية':220,'السويس':260,'سيناء الشمالية':330,'سيناء الجنوبية':510,'البحر الأحمر':430,'الفيوم':205,'بني سويف':235,'المنيا':350,'أسيوط':485,'سوهاج':570,'قنا':685,'الأقصر':755,'أسوان':985,'مطروح':340,'الوادي الجديد':590 },
+  'كفر الشيخ':     { 'القاهرة':160,'الإسكندرية':100,'الجيزة':170,'الشرقية':160,'الدقهلية':90,'البحيرة':80,'المنوفية':100,'القليوبية':150,'الغربية':70,'دمياط':120,'بورسعيد':220,'الإسماعيلية':240,'السويس':280,'سيناء الشمالية':340,'سيناء الجنوبية':540,'البحر الأحمر':460,'الفيوم':255,'بني سويف':285,'المنيا':400,'أسيوط':535,'سوهاج':620,'قنا':735,'الأقصر':805,'أسوان':1035,'مطروح':280,'الوادي الجديد':640 },
+  'دمياط':         { 'القاهرة':195,'الإسكندرية':230,'الجيزة':205,'الشرقية':140,'الدقهلية':60,'البحيرة':195,'المنوفية':155,'القليوبية':175,'الغربية':135,'كفر الشيخ':120,'بورسعيد':75,'الإسماعيلية':140,'السويس':190,'سيناء الشمالية':215,'سيناء الجنوبية':460,'البحر الأحمر':360,'الفيوم':295,'بني سويف':325,'المنيا':440,'أسيوط':575,'سوهاج':660,'قنا':775,'الأقصر':845,'أسوان':1075,'مطروح':425,'الوادي الجديد':685 },
+  'بورسعيد':       { 'القاهرة':170,'الإسكندرية':320,'الجيزة':180,'الشرقية':100,'الدقهلية':130,'البحيرة':290,'المنوفية':230,'القليوبية':155,'الغربية':240,'كفر الشيخ':220,'دمياط':75,'الإسماعيلية':75,'السويس':115,'سيناء الشمالية':130,'سيناء الجنوبية':380,'البحر الأحمر':290,'الفيوم':270,'بني سويف':300,'المنيا':420,'أسيوط':555,'سوهاج':640,'قنا':755,'الأقصر':825,'أسوان':1055,'مطروح':500,'الوادي الجديد':665 },
+  'الإسماعيلية':   { 'القاهرة':120,'الإسكندرية':310,'الجيزة':130,'الشرقية':80,'الدقهلية':150,'البحيرة':280,'المنوفية':200,'القليوبية':120,'الغربية':220,'كفر الشيخ':240,'دمياط':140,'بورسعيد':75,'السويس':50,'سيناء الشمالية':100,'سيناء الجنوبية':320,'البحر الأحمر':230,'الفيوم':220,'بني سويف':250,'المنيا':370,'أسيوط':505,'سوهاج':590,'قنا':705,'الأقصر':775,'أسوان':1005,'مطروح':480,'الوادي الجديد':615 },
+  'السويس':        { 'القاهرة':135,'الإسكندرية':340,'الجيزة':145,'الشرقية':110,'الدقهلية':200,'البحيرة':310,'المنوفية':230,'القليوبية':155,'الغربية':260,'كفر الشيخ':280,'دمياط':190,'بورسعيد':115,'الإسماعيلية':50,'سيناء الشمالية':80,'سيناء الجنوبية':300,'البحر الأحمر':200,'الفيوم':235,'بني سويف':265,'المنيا':385,'أسيوط':520,'سوهاج':605,'قنا':720,'الأقصر':790,'أسوان':1020,'مطروح':500,'الوادي الجديد':630 },
+  'سيناء الشمالية':{ 'القاهرة':230,'الإسكندرية':410,'الجيزة':240,'الشرقية':160,'الدقهلية':250,'البحيرة':380,'المنوفية':300,'القليوبية':220,'الغربية':330,'كفر الشيخ':340,'دمياط':215,'بورسعيد':130,'الإسماعيلية':100,'السويس':80,'سيناء الجنوبية':250,'البحر الأحمر':280,'الفيوم':330,'بني سويف':360,'المنيا':480,'أسيوط':615,'سوهاج':700,'قنا':815,'الأقصر':885,'أسوان':1115,'مطروح':580,'الوادي الجديد':725 },
+  'سيناء الجنوبية':{ 'القاهرة':400,'الإسكندرية':590,'الجيزة':410,'الشرقية':380,'الدقهلية':470,'البحيرة':560,'المنوفية':480,'القليوبية':420,'الغربية':510,'كفر الشيخ':540,'دمياط':460,'بورسعيد':380,'الإسماعيلية':320,'السويس':300,'سيناء الشمالية':250,'البحر الأحمر':280,'الفيوم':500,'بني سويف':530,'المنيا':650,'أسيوط':785,'سوهاج':870,'قنا':985,'الأقصر':1055,'أسوان':1285,'مطروح':750,'الوادي الجديد':895 },
+  'البحر الأحمر':  { 'القاهرة':320,'الإسكندرية':510,'الجيزة':330,'الشرقية':280,'الدقهلية':370,'البحيرة':480,'المنوفية':400,'القليوبية':330,'الغربية':430,'كفر الشيخ':460,'دمياط':360,'بورسعيد':290,'الإسماعيلية':230,'السويس':200,'سيناء الشمالية':280,'سيناء الجنوبية':280,'الفيوم':420,'بني سويف':390,'المنيا':450,'أسيوط':520,'سوهاج':580,'قنا':620,'الأقصر':650,'أسوان':750,'مطروح':680,'الوادي الجديد':520 },
+  'الفيوم':        { 'القاهرة':100,'الإسكندرية':300,'الجيزة':85,'الشرقية':190,'الدقهلية':220,'البحيرة':270,'المنوفية':175,'القليوبية':125,'الغربية':205,'كفر الشيخ':255,'دمياط':295,'بورسعيد':270,'الإسماعيلية':220,'السويس':235,'سيناء الشمالية':330,'سيناء الجنوبية':500,'البحر الأحمر':420,'بني سويف':60,'المنيا':170,'أسيوط':305,'سوهاج':390,'قنا':505,'الأقصر':575,'أسوان':805,'مطروح':445,'الوادي الجديد':460 },
+  'بني سويف':      { 'القاهرة':130,'الإسكندرية':330,'الجيزة':115,'الشرقية':220,'الدقهلية':250,'البحيرة':300,'المنوفية':205,'القليوبية':155,'الغربية':235,'كفر الشيخ':285,'دمياط':325,'بورسعيد':300,'الإسماعيلية':250,'السويس':265,'سيناء الشمالية':360,'سيناء الجنوبية':530,'البحر الأحمر':390,'الفيوم':60,'المنيا':115,'أسيوط':250,'سوهاج':335,'قنا':450,'الأقصر':520,'أسوان':750,'مطروح':480,'الوادي الجديد':405 },
+  'المنيا':        { 'القاهرة':245,'الإسكندرية':440,'الجيزة':230,'الشرقية':335,'الدقهلية':365,'البحيرة':415,'المنوفية':320,'القليوبية':270,'الغربية':350,'كفر الشيخ':400,'دمياط':440,'بورسعيد':420,'الإسماعيلية':370,'السويس':385,'سيناء الشمالية':480,'سيناء الجنوبية':650,'البحر الأحمر':450,'الفيوم':170,'بني سويف':115,'أسيوط':135,'سوهاج':220,'قنا':335,'الأقصر':405,'أسوان':635,'مطروح':580,'الوادي الجديد':295 },
+  'أسيوط':         { 'القاهرة':380,'الإسكندرية':575,'الجيزة':365,'الشرقية':470,'الدقهلية':500,'البحيرة':550,'المنوفية':455,'القليوبية':405,'الغربية':485,'كفر الشيخ':535,'دمياط':575,'بورسعيد':555,'الإسماعيلية':505,'السويس':520,'سيناء الشمالية':615,'سيناء الجنوبية':785,'البحر الأحمر':520,'الفيوم':305,'بني سويف':250,'المنيا':135,'سوهاج':90,'قنا':205,'الأقصر':275,'أسوان':505,'مطروح':700,'الوادي الجديد':175 },
+  'سوهاج':         { 'القاهرة':465,'الإسكندرية':660,'الجيزة':450,'الشرقية':555,'الدقهلية':585,'البحيرة':635,'المنوفية':540,'القليوبية':490,'الغربية':570,'كفر الشيخ':620,'دمياط':660,'بورسعيد':640,'الإسماعيلية':590,'السويس':605,'سيناء الشمالية':700,'سيناء الجنوبية':870,'البحر الأحمر':580,'الفيوم':390,'بني سويف':335,'المنيا':220,'أسيوط':90,'قنا':115,'الأقصر':185,'أسوان':415,'مطروح':785,'الوادي الجديد':200 },
+  'قنا':            { 'القاهرة':580,'الإسكندرية':775,'الجيزة':565,'الشرقية':670,'الدقهلية':700,'البحيرة':750,'المنوفية':655,'القليوبية':605,'الغربية':685,'كفر الشيخ':735,'دمياط':775,'بورسعيد':755,'الإسماعيلية':705,'السويس':720,'سيناء الشمالية':815,'سيناء الجنوبية':985,'البحر الأحمر':620,'الفيوم':505,'بني سويف':450,'المنيا':335,'أسيوط':205,'سوهاج':115,'الأقصر':70,'أسوان':300,'مطروح':900,'الوادي الجديد':280 },
+  'الأقصر':        { 'القاهرة':650,'الإسكندرية':840,'الجيزة':635,'الشرقية':740,'الدقهلية':770,'البحيرة':820,'المنوفية':725,'القليوبية':675,'الغربية':755,'كفر الشيخ':805,'دمياط':845,'بورسعيد':825,'الإسماعيلية':775,'السويس':790,'سيناء الشمالية':885,'سيناء الجنوبية':1055,'البحر الأحمر':650,'الفيوم':575,'بني سويف':520,'المنيا':405,'أسيوط':275,'سوهاج':185,'قنا':70,'أسوان':230,'مطروح':970,'الوادي الجديد':340 },
+  'أسوان':          { 'القاهرة':880,'الإسكندرية':1070,'الجيزة':865,'الشرقية':970,'الدقهلية':1000,'البحيرة':1050,'المنوفية':955,'القليوبية':905,'الغربية':985,'كفر الشيخ':1035,'دمياط':1075,'بورسعيد':1055,'الإسماعيلية':1005,'السويس':1020,'سيناء الشمالية':1115,'سيناء الجنوبية':1285,'البحر الأحمر':750,'الفيوم':805,'بني سويف':750,'المنيا':635,'أسيوط':505,'سوهاج':415,'قنا':300,'الأقصر':230,'مطروح':1200,'الوادي الجديد':560 },
+  'مطروح':         { 'القاهرة':490,'الإسكندرية':300,'الجيزة':475,'الشرقية':510,'الدقهلية':430,'البحيرة':260,'المنوفية':380,'القليوبية':480,'الغربية':340,'كفر الشيخ':280,'دمياط':425,'بورسعيد':500,'الإسماعيلية':480,'السويس':500,'سيناء الشمالية':580,'سيناء الجنوبية':750,'البحر الأحمر':680,'الفيوم':445,'بني سويف':480,'المنيا':580,'أسيوط':700,'سوهاج':785,'قنا':900,'الأقصر':970,'أسوان':1200,'الوادي الجديد':870 },
+  'الوادي الجديد':  { 'القاهرة':550,'الإسكندرية':680,'الجيزة':535,'الشرقية':580,'الدقهلية':610,'البحيرة':655,'المنوفية':560,'القليوبية':565,'الغربية':590,'كفر الشيخ':640,'دمياط':685,'بورسعيد':665,'الإسماعيلية':615,'السويس':630,'سيناء الشمالية':725,'سيناء الجنوبية':895,'البحر الأحمر':520,'الفيوم':460,'بني سويف':405,'المنيا':295,'أسيوط':175,'سوهاج':200,'قنا':280,'الأقصر':340,'أسوان':560,'مطروح':870 }
+};
+
+function getDistance(from, to) {
+  if (from === to) return 0;
+  if (distances[from] && distances[from][to]) return distances[from][to];
+  if (distances[to] && distances[to][from]) return distances[to][from];
+  return null;
+}
+
+function autoCalcPrice() {
+  const from = document.getElementById('from-text').textContent.trim();
+  const to = document.getElementById('to-text').textContent.trim();
+  const priceCard = document.getElementById('price-card');
+
+  if (!to || to === 'اختر وجهتك') {
+    priceCard.style.display = 'none';
+    return;
+  }
+
+  const km = getDistance(from, to);
+
+  if (km === null || km === undefined) {
+    // مفيش مسافة معروفة — خبّي الكارد
+    priceCard.style.display = 'none';
+    return;
+  }
+  if (km === 0) {
+    priceCard.style.display = 'block';
+    document.getElementById('km-display').textContent = '0 كم';
+    document.getElementById('price-est').textContent = '0 ج.م';
+    document.getElementById('time-display').textContent = '0 دقيقة';
+    document.getElementById('price-detail').textContent = 'نفس المحافظة';
+    return;
+  }
+  const total = km * carPrice;
+  const mins = Math.round(km * 1.2);
+  priceCard.style.display = 'block';
+  document.getElementById('km-display').textContent = km + ' كم';
+  document.getElementById('price-est').textContent = total.toLocaleString() + ' ج.م';
+  document.getElementById('time-display').textContent = mins + ' دقيقة';
+  document.getElementById('price-detail').textContent = km + ' كم × ' + carPrice + ' ج.م/كم = ' + total.toLocaleString() + ' ج.م';
+}
+
+// إحداثيات المحافظات
+const govCoords = {
+  'القاهرة':        [30.0444, 31.2357],
+  'الإسكندرية':    [31.2001, 29.9187],
+  'الجيزة':        [30.0131, 31.2089],
+  'الشرقية':       [30.7444, 31.6572],
+  'الدقهلية':      [31.0409, 31.3824],
+  'البحيرة':       [30.8480, 30.3436],
+  'المنوفية':      [30.5973, 30.9876],
+  'القليوبية':     [30.3292, 31.2168],
+  'الغربية':       [30.8748, 31.0326],
+  'كفر الشيخ':     [31.1107, 30.9388],
+  'دمياط':         [31.4165, 31.8133],
+  'بورسعيد':       [31.2565, 32.2841],
+  'الإسماعيلية':   [30.5965, 32.2715],
+  'السويس':        [29.9668, 32.5498],
+  'سيناء الشمالية':[31.1280, 33.7996],
+  'سيناء الجنوبية':[28.2367, 34.1737],
+  'البحر الأحمر':  [26.9959, 33.8335],
+  'الفيوم':        [29.3084, 30.8428],
+  'بني سويف':      [29.0661, 31.0994],
+  'المنيا':        [28.0871, 30.7618],
+  'أسيوط':         [27.1809, 31.1837],
+  'سوهاج':         [26.5569, 31.6948],
+  'قنا':            [26.1551, 32.7160],
+  'الأقصر':        [25.6872, 32.6396],
+  'أسوان':          [24.0889, 32.8998],
+  'مطروح':         [31.3543, 27.2373],
+  'الوادي الجديد':  [25.4492, 29.0026]
+};
+
+
+// INPUT MODAL
+function openInputModal(type) {
+  currentInput = type;
+  document.getElementById('modal-title').textContent = type === 'from' ? 'اختر محافظة الانطلاق' : 'اختر الوجهة';
+  // أزل زر GPS لو بنفتح لـ to
+  const gpsBtn = document.getElementById('gps-suggestion');
+  if (gpsBtn && type === 'to') gpsBtn.remove();
+  document.getElementById('modal-input').value = '';
+  filterSuggestions('');
+  document.getElementById('input-modal').classList.add('visible');
+  setTimeout(() => document.getElementById('modal-input').focus(), 300);
+}
+
+function closeInputModal(e) {
+  if (e.target === document.getElementById('input-modal')) {
+    document.getElementById('input-modal').classList.remove('visible');
+  }
+}
+
+function selectLocation(loc) {
+  const isFrom = currentInput === 'from';
+
+  if (isFrom) {
+    document.getElementById('from-text').textContent = loc;
+    document.getElementById('from-text').style.color = 'var(--text)';
+    centerMapOnGov(loc);
+  } else {
+    document.getElementById('to-text').textContent = loc;
+    document.getElementById('to-text').style.color = 'var(--text)';
+    showBothMarkers(loc);
+  }
+
+  autoCalcPrice();
+  document.getElementById('input-modal').classList.remove('visible');
+  document.getElementById('modal-input').value = '';
+  selectedLocation = '';
+}
+
+function openGoogleMaps(lat, lng) {
+  window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+}
+
+
+let mapPickMode = null;
+let mapClickHandler = null;
+
+function startMapPick(type) {
+  mapPickMode = type;
+  document.getElementById('map-pick-bar').style.display = 'block';
+  document.getElementById('map-pick-bar').innerHTML = `
+    🎯 اضغط على الخريطة لتحديد ${type === 'from' ? 'نقطة الانطلاق' : 'الوجهة'}
+    <span onclick="cancelMapPick()" style="float:left;cursor:pointer;font-size:1.1rem;">✕</span>
+  `;
+
+  // اسكرول للخريطة
+  document.getElementById('map').scrollIntoView({ behavior: 'smooth' });
+
+  // أضف حدث الضغط على الخريطة
+  if (mapClickHandler) map.off('click', mapClickHandler);
+  mapClickHandler = function(e) {
+    const { lat, lng } = e.latlng;
+    handleMapClick(lat, lng);
+  };
+  map.on('click', mapClickHandler);
+
+  // غير شكل المؤشر
+  map.getContainer().style.cursor = 'crosshair';
+}
+
+function handleMapClick(lat, lng) {
+  // عكس الجيوكودينج - تحويل الإحداثيات لاسم المكان
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ar`)
+    .then(r => r.json())
+    .then(data => {
+      const addr = data.address;
+      const placeName = addr.suburb || addr.neighbourhood || addr.city_district || addr.city || addr.state || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+      if (mapPickMode === 'from') {
+        document.getElementById('from-text').textContent = placeName;
+        document.getElementById('from-text').style.color = 'var(--text)';
+
+        if (fromMarker) map.removeLayer(fromMarker);
+        fromMarker = L.marker([lat, lng], { icon: makeFromIcon() }).addTo(map);
+        fromMarker.bindPopup(`
+          <b>📍 الانطلاق</b><br>${placeName}<br><br>
+          <button onclick="openGoogleMaps(${lat},${lng})"
+            style="background:#ff6a00;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;width:100%">
+            🗺️ افتح في Google Maps
+          </button>
+        `).openPopup();
+        userLat = lat; userLng = lng;
+
+      } else {
+        document.getElementById('to-text').textContent = placeName;
+        document.getElementById('to-text').style.color = 'var(--text)';
+
+        if (destMarkerGlobal) map.removeLayer(destMarkerGlobal);
+        destMarkerGlobal = L.marker([lat, lng], { icon: makeDestIcon() }).addTo(map);
+        destMarkerGlobal.bindPopup(`
+          <b>🎯 الوجهة</b><br>${placeName}<br><br>
+          <button onclick="openGoogleMaps(${lat},${lng})"
+            style="background:#ff6a00;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;width:100%">
+            🗺️ افتح في Google Maps
+          </button>
+        `).openPopup();
+
+        // اضبط الخريطة تشمل الاتنين
+        if (userLat && userLng) {
+          map.fitBounds(L.latLngBounds([[userLat, userLng], [lat, lng]]), { padding: [80, 80] });
+        }
+      }
+
+      // احسب المسافة الحقيقية بين النقطتين
+      if (userLat && userLng && mapPickMode === 'to') {
+        const km = calcRealDistance(userLat, userLng, lat, lng);
+        const total = Math.round(km * carPrice);
+        document.getElementById('price-card').style.display = 'block';
+        document.getElementById('km-display').textContent = km + ' كم';
+        document.getElementById('price-est').textContent = total + ' ج.م';
+        document.getElementById('time-display').textContent = Math.round(km * 1.2) + ' دقيقة';
+        document.getElementById('price-detail').textContent = km + ' كم × ' + carPrice + ' ج.م/كم = ' + total + ' ج.م';
+      }
+
+      cancelMapPick();
+    })
+    .catch(() => {
+      const placeName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      if (mapPickMode === 'from') {
+        document.getElementById('from-text').textContent = placeName;
+        userLat = lat; userLng = lng;
+      } else {
+        document.getElementById('to-text').textContent = placeName;
+      }
+      cancelMapPick();
+    });
+}
+
+function cancelMapPick() {
+  if (mapClickHandler) map.off('click', mapClickHandler);
+  mapClickHandler = null;
+  mapPickMode = null;
+  document.getElementById('map-pick-bar').style.display = 'none';
+  map.getContainer().style.cursor = '';
+}
+
+// حساب المسافة الحقيقية بين نقطتين (Haversine)
+function calcRealDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  return Math.round(2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
+
+function confirmLocation() {
+  const val = selectedLocation;
+  if (val) {
+    if (currentInput === 'from') {
+      document.getElementById('from-text').textContent = val;
+      document.getElementById('from-text').style.color = 'var(--text)';
+      document.getElementById('from-gps-icon').textContent = '✎';
+      centerMapOnGov(val);
+    } else {
+      document.getElementById('to-text').textContent = val;
+      document.getElementById('to-text').style.color = 'var(--text)';
+      showBothMarkers(val);
+    }
+    autoCalcPrice();
+  }
+  document.getElementById('input-modal').classList.remove('visible');
+  document.getElementById('modal-input').value = '';
+  selectedLocation = '';
+}
+
+
+function filterSuggestions(val) {
+  const suggestions = document.querySelectorAll('.suggestion');
+  suggestions.forEach(s => {
+    const text = s.querySelector('.sug-text').textContent;
+    s.style.display = text.includes(val) || val === '' ? 'flex' : 'none';
+  });
+}
+
+// RIDE
+// بيانات الحجوزات
+let bookings = JSON.parse(localStorage.getItem('safariat_bookings') || '[]');
+let selectedCarType = 'سيدان';
+
+function selectCar(el, type, price) {
+  document.querySelectorAll('.car-type').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  carPrice = price;
+  selectedCarType = type;
+  autoCalcPrice();
+}
+
+function openClientModal() {
+  const from = document.getElementById('from-text').textContent;
+  const to = document.getElementById('to-text').textContent;
+  if (to === 'اختر وجهتك') {
+    showToast('⚠️ اختر الوجهة أولاً');
+    return;
+  }
+  if (from === 'جاري تحديد موقعك...') {
+    showToast('⚠️ انتظر تحديد موقعك أو اختره يدوياً');
+    return;
+  }
+  document.getElementById('sum-from').textContent = from;
+  document.getElementById('sum-to').textContent = to;
+  document.getElementById('sum-car').textContent = selectedCarType;
+  document.getElementById('sum-price').textContent = document.getElementById('price-est').textContent;
+  document.getElementById('client-modal').style.display = 'flex';
+}
+
+function closeClientModal() {
+  document.getElementById('client-modal').style.display = 'none';
+}
+
+function confirmBooking() {
+  const name = document.getElementById('client-name').value.trim();
+  const phone = document.getElementById('client-phone').value.trim();
+  if (!name || !phone) {
+    showToast('⚠️ أدخل الاسم ورقم التليفون');
+    return;
+  }
+
+  const booking = {
+    id: Date.now(),
+    name,
+    phone,
+    from: document.getElementById('from-text').textContent,
+    to: document.getElementById('to-text').textContent,
+    car: selectedCarType,
+    price: document.getElementById('price-est').textContent,
+    km: document.getElementById('km-display').textContent,
+    time: new Date().toLocaleString('ar-EG'),
+    status: 'جديد'
+  };
+
+  bookings.unshift(booking);
+  localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+
+  closeClientModal();
+  document.getElementById('client-name').value = '';
+  document.getElementById('client-phone').value = '';
+
+  showToast(`✅ تم الحجز! سيتم التواصل معك على ${phone}`);
+  document.getElementById('tracking-modal').classList.add('visible');
+  initTrackingMap();
+}
+
+// ===== نظام التعرف على الوجه =====
+let faceStream = null;
+let faceDetectionInterval = null;
+let faceModelsLoaded = false;
+let registeredFaceDescriptor = JSON.parse(localStorage.getItem('admin_face') || 'null');
+
+async function loadFaceModels() {
+  if (faceModelsLoaded) return true;
+  try {
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+    ]);
+    faceModelsLoaded = true;
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function isFaceAuthValid() {
+  // لازم يتحقق بالكاميرا كل ما يفتح التطبيق من جديد
+  return sessionStorage.getItem('face_session') === '1';
+}
+
+async function openAdminPanel() {
+  // لو التحقق خلال 24 ساعة
+  if (isFaceAuthValid()) {
+    renderBookings();
+    document.getElementById('admin-panel').style.display = 'flex';
+    return;
+  }
+  // افتح شاشة الكاميرا
+  openFaceModal();
+}
+
+async function openFaceModal() {
+  document.getElementById('face-modal').style.display = 'flex';
+  document.getElementById('face-status').textContent = '⏳ جاري تحميل نظام التعرف...';
+  document.getElementById('face-bar').style.width = '20%';
+
+  try {
+    faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    document.getElementById('face-video').srcObject = faceStream;
+    document.getElementById('face-bar').style.width = '50%';
+
+    const loaded = await loadFaceModels();
+    if (!loaded) throw new Error('فشل تحميل النماذج');
+
+    document.getElementById('face-bar').style.width = '100%';
+
+    if (!registeredFaceDescriptor) {
+      document.getElementById('face-status').textContent = '👤 أول مرة! سجل وجهك كأدمن';
+      document.getElementById('face-register-btn').style.display = 'block';
+    } else {
+      document.getElementById('face-status').textContent = '👁️ انظر للكاميرا... جاري التعرف';
+      startFaceDetection();
+    }
+  } catch(e) {
+    document.getElementById('face-status').textContent = '❌ تعذر فتح الكاميرا';
+  }
+}
+
+async function startFaceDetection() {
+  const video = document.getElementById('face-video');
+  let attempts = 0;
+
+  faceDetectionInterval = setInterval(async () => {
+    attempts++;
+    if (attempts > 15) {
+      clearInterval(faceDetectionInterval);
+      document.getElementById('face-status').textContent = '❌ لم يتم التعرف! حاول مجدداً';
+      document.getElementById('face-bar').style.background = 'red';
+      return;
+    }
+
+    try {
+      const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks().withFaceDescriptor();
+
+      if (!detection) {
+        document.getElementById('face-status').textContent = `👁️ انظر للكاميرا... (${attempts}/15)`;
+        return;
+      }
+
+      const stored = new Float32Array(Object.values(registeredFaceDescriptor));
+      const distance = faceapi.euclideanDistance(detection.descriptor, stored);
+
+      if (distance < 0.5) {
+        clearInterval(faceDetectionInterval);
+        document.getElementById('face-bar').style.background = '#ff6a00';
+        document.getElementById('face-bar').style.width = '100%';
+        document.getElementById('face-status').textContent = '✅ تم التعرف! مرحباً بك';
+
+        sessionStorage.setItem('face_session', '1');
+
+        setTimeout(() => {
+          closeFaceModal();
+          renderBookings();
+          document.getElementById('admin-panel').style.display = 'flex';
+        }, 1000);
+      } else {
+        document.getElementById('face-status').textContent = `🔍 جاري التحقق... (${attempts}/15)`;
+      }
+    } catch(e) {}
+  }, 800);
+}
+
+async function registerFace() {
+  const video = document.getElementById('face-video');
+  document.getElementById('face-status').textContent = '📸 ثبّت وجهك...';
+
+  try {
+    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks().withFaceDescriptor();
+
+    if (!detection) {
+      document.getElementById('face-status').textContent = '❌ لم يتم رصد وجهك! حاول مجدداً';
+      return;
+    }
+
+    registeredFaceDescriptor = Object.assign({}, detection.descriptor);
+    localStorage.setItem('admin_face', JSON.stringify(registeredFaceDescriptor));
+
+    document.getElementById('face-status').textContent = '✅ تم تسجيل وجهك بنجاح!';
+    document.getElementById('face-register-btn').style.display = 'none';
+    document.getElementById('face-bar').style.background = '#ff6a00';
+
+    sessionStorage.setItem('face_session', '1');
+
+    setTimeout(() => {
+      closeFaceModal();
+      renderBookings();
+      document.getElementById('admin-panel').style.display = 'flex';
+    }, 1200);
+  } catch(e) {
+    document.getElementById('face-status').textContent = '❌ حدث خطأ! حاول مجدداً';
+  }
+}
+
+function closeFaceModal() {
+  if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+  if (faceStream) faceStream.getTracks().forEach(t => t.stop());
+  faceStream = null;
+  document.getElementById('face-modal').style.display = 'none';
+  document.getElementById('face-bar').style.width = '0%';
+  document.getElementById('face-bar').style.background = '#ff6a00';
+  document.getElementById('face-register-btn').style.display = 'none';
+}
+
+// كلمة سر الأدمن
+let adminPassword = localStorage.getItem('admin_pass') || 'Safar@2026';
+
+function changeAdminPassword() {
+  document.getElementById('cp-current').value = '';
+  document.getElementById('cp-new').value = '';
+  document.getElementById('cp-confirm').value = '';
+  document.getElementById('cp-error').textContent = '';
+  document.getElementById('change-pass-modal').style.display = 'flex';
+}
+
+function closeChangePassModal() {
+  document.getElementById('change-pass-modal').style.display = 'none';
+}
+
+function confirmChangePass() {
+  const current = document.getElementById('cp-current').value;
+  const newPass = document.getElementById('cp-new').value;
+  const confirm = document.getElementById('cp-confirm').value;
+  const errEl = document.getElementById('cp-error');
+
+  if (current !== adminPassword) {
+    errEl.textContent = '❌ كلمة السر الحالية غلط!';
+    return;
+  }
+  if (!newPass || newPass.length < 6) {
+    errEl.textContent = '⚠️ كلمة السر لازم تكون 6 أحرف على الأقل!';
+    return;
+  }
+  if (newPass !== confirm) {
+    errEl.textContent = '❌ كلمتا السر مش متطابقتين!';
+    return;
+  }
+  adminPassword = newPass;
+  localStorage.setItem('admin_pass', adminPassword);
+  closeChangePassModal();
+  showToast('✅ تم تغيير كلمة السر بنجاح!');
+}
+
+function closeAdminPanel() {
+  document.getElementById('admin-panel').style.display = 'none';
+}
+
+function renderBookings() {
+  const list = document.getElementById('bookings-list');
+  const noBookings = document.getElementById('no-bookings');
+  document.getElementById('bookings-count').textContent = bookings.length + ' حجز';
+
+  if (bookings.length === 0) {
+    list.innerHTML = '';
+    noBookings.style.display = 'block';
+    return;
+  }
+
+  noBookings.style.display = 'none';
+  list.innerHTML = bookings.map(b => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:0.8rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+        <div style="font-size:1rem;font-weight:700;">👤 ${b.name}</div>
+        <div style="background:${b.status==='جديد'?'rgba(168,230,61,0.2)':'rgba(255,106,0,0.2)'};color:${b.status==='جديد'?'var(--accent)':'var(--accent2)'};border-radius:50px;padding:0.2rem 0.7rem;font-size:0.75rem;font-weight:700;">${b.status}</div>
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.3rem;">📞 ${b.phone}</div>
+      <div style="font-size:0.82rem;margin-bottom:0.2rem;">📍 <b>${b.from}</b> ← 🎯 <b>${b.to}</b></div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem;">🚗 ${b.car} • ${b.km} • 🕐 ${b.time}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:1.1rem;font-weight:900;color:var(--accent);">${b.price}</div>
+        <div style="display:flex;gap:0.5rem;">
+          <button onclick="updateStatus(${b.id},'قيد التنفيذ')" style="padding:0.4rem 0.7rem;background:rgba(168,230,61,0.15);border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">✅ قبول</button>
+          <button onclick="updateStatus(${b.id},'ملغي')" style="padding:0.4rem 0.7rem;background:rgba(255,106,0,0.1);border:1px solid var(--accent2);border-radius:8px;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">❌ إلغاء</button>
+          <button onclick="deleteBooking(${b.id})" style="padding:0.4rem 0.7rem;background:rgba(255,0,0,0.1);border:1px solid red;border-radius:8px;color:red;font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">🗑️</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateStatus(id, status) {
+  bookings = bookings.map(b => b.id === id ? {...b, status} : b);
+  localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+  renderBookings();
+}
+
+function deleteBooking(id) {
+  bookings = bookings.filter(b => b.id !== id);
+  localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+  renderBookings();
+}
+
+function startRide() {
+  const to = document.getElementById('to-text').textContent;
+  if (to === 'اختر وجهتك') {
+    openInputModal('to');
+    return;
+  }
+  document.getElementById('tracking-modal').classList.add('visible');
+  initTrackingMap();
+}
+
+function cancelRide() {
+  // بدل confirm، نستخدم modal بسيط
+  document.getElementById('cancel-ride-modal').style.display = 'flex';
+}
+
+function confirmCancelRide() {
+  document.getElementById('cancel-ride-modal').style.display = 'none';
+  document.getElementById('tracking-modal').classList.remove('visible');
+  showToast('تم إلغاء الرحلة');
+}
+
+function dismissCancelRide() {
+  document.getElementById('cancel-ride-modal').style.display = 'none';
+}
+
+function toggleMenu() {
+  const menu = document.getElementById('side-menu');
+  const overlay = document.getElementById('menu-overlay');
+  const isOpen = menu.style.transform === 'translateX(0%)';
+  menu.style.transform = isOpen ? 'translateX(100%)' : 'translateX(0%)';
+  overlay.style.display = isOpen ? 'none' : 'block';
+}
+
+function showNotif() {
+  showToast('🔔 لا توجد إشعارات جديدة');
+}
+
+// INIT
+window.onload = () => {
+  setTimeout(() => {
+    initMap();
+    showScreen('home');
+  }, 3100);
+};
+</script>
+</body>
+</html>
