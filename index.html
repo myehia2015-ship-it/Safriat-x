@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>سفريات اكس - نقل ذكي</title>
+<meta name="description" content="احجز رحلتك الخاصة بين المحافظات بسهولة. السعر بيتحسب أوتوماتيك حسب المسافة، من غير فصال ولا مكالمات.">
+<meta name="theme-color" content="#d97757">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="سفريات اكس">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta property="og:title" content="سفريات اكس - احجز رحلتك بسهولة">
+<meta property="og:description" content="سعر أوتوماتيك حسب المسافة، عربيات سيدان و ٧ و ١٤ راكب لأي مكان في مصر.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ar_EG">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Firebase (compat SDK - simple to use, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">سفريات</div>
+  <div class="splash-tagline">سافر بذكاء مع سفريات اكس 🚗</div>
+  <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div style="display:flex;gap:0.6rem;align-items:center">
+      <div class="notif-btn" onclick="toggleMenu()" aria-label="القائمة الجانبية" role="button">☰</div>
+      <div class="topbar-avatar" id="topbar-avatar-initial" onclick="showScreen('profile')" aria-label="الملف الشخصي" role="button">أ</div>
+    </div>
+    <div class="topbar-brand" id="logo-tap-trigger" onclick="handleLogoTap()" style="color:#d97757;font-size:1rem;margin-right:auto;margin-left:0;cursor:pointer;user-select:none;">سفريات اكس 🚗</div>
+  </div>
+
+  <!-- SIDE MENU -->
+  <div id="side-menu" style="position:fixed;top:0;right:0;width:70%;max-width:280px;height:100vh;background:var(--surface);z-index:999;transform:translateX(100%);transition:transform 0.3s ease;padding:2rem 1.2rem;border-left:1px solid var(--border);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+      <div style="font-size:1.1rem;font-weight:900;color:#d97757;">سفريات اكس</div>
+      <div onclick="toggleMenu()" style="cursor:pointer;font-size:1.3rem;">✕</div>
+    </div>
+    <div onclick="showScreen('home');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🏠 <span>الرئيسية</span></div>
+    <div onclick="showScreen('trips');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🗺️ <span>رحلاتي</span></div>
+    <div onclick="showScreen('wallet');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">💳 <span>المحفظة</span></div>
+    <div onclick="showScreen('profile');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">👤 <span>حسابي</span></div>
+  </div>
+  <div id="menu-overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:998;display:none;"></div>
+
+  <!-- HOME SCREEN -->
+  <div id="screen-home" class="screen active">
+    
+    <div style="position:relative">
+      <div id="map"></div>
+      <div class="map-overlay"></div>
+      <div class="location-pill">
+        <div class="loc-dot"></div>
+        <span id="location-text">جاري تحديد موقعك...</span>
+      </div>
+      <div id="center-pin" class="center-pin">📍</div>
+      <button id="fine-tune-btn" class="fine-tune-btn" onclick="toggleFineTune()">🎯 ظبط نقطة الانطلاق بدقة</button>
+    </div>
+
+    <div class="booking-card">
+      <div class="drag-handle"></div>
+      <div class="section-title">عايز تروح فين؟</div>
+
+      <div class="input-group">
+        <div class="input-row" onclick="openFromModal()">
+          <div class="input-icon icon-from">📍</div>
+          <div class="input-text">
+            <div class="input-label">محافظة الانطلاق</div>
+            <div class="input-value" id="from-text" style="color:var(--muted)">جاري تحديد موقعك...</div>
+          </div>
+          <span id="from-gps-icon" style="color:#d97757;font-size:0.85rem;font-weight:700;">GPS</span>
+        </div>
+        <div class="input-row" onclick="openInputModal('to')">
+          <div class="input-icon icon-to">🎯</div>
+          <div class="input-text">
+            <div class="input-label">الوجهة</div>
+            <div class="input-value" id="to-text" style="color:var(--muted)">اختار وجهتك</div>
+          </div>
+          <span style="color:var(--muted);font-size:0.8rem">›</span>
+        </div>
+      </div>
+
+      <!-- شريط تحديد الموقع -->
+      <div id="map-pick-bar" style="display:none;background:#d97757;color:white;text-align:center;padding:0.7rem;border-radius:12px;margin-bottom:0.8rem;font-size:0.9rem;font-weight:700;">
+        🎯 اضغط على الخريطة لتحديد الموقع
+        <span onclick="cancelMapPick()" style="float:left;cursor:pointer;font-size:1.1rem;">✕</span>
+      </div>
+
+      <div class="section-title">اختار نوع العربية</div>
+      <div class="car-types">
+        <div class="car-type selected" onclick="selectCar(this, 'سيدان', 8.5)">
+          <span class="car-type-icon">🚗</span>
+          <div class="car-type-name">سيدان</div>
+        </div>
+        <div class="car-type" onclick="selectCar(this, '7 ركاب', 10)">
+          <span class="car-type-icon">🚙</span>
+          <div class="car-type-name">7 ركاب</div>
+        </div>
+        <div class="car-type" onclick="selectCar(this, '14 راكب', 12)">
+          <span class="car-type-icon">🚌</span>
+          <div class="car-type-name">14 راكب</div>
+        </div>
+      </div>
+
+      <div id="price-card" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:1rem;animation:fadeIn 0.3s ease;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="text-align:center;flex:1;">
+            <div style="font-size:0.75rem;color:var(--muted);">السعر الإجمالي</div>
+            <div id="price-est" style="font-size:1.5rem;font-weight:900;color:var(--accent);">-- ج.م</div>
+          </div>
+          <div style="text-align:center;flex:1;">
+            <div style="font-size:0.75rem;color:var(--muted);">الوقت</div>
+            <div id="time-display" style="font-size:1rem;font-weight:700;">-- دقيقة</div>
+          </div>
+        </div>
+        <!-- المسافة والتفاصيل التفصيلية مخفيين عمدًا، بيتحدثوا في الخلفية وبيستخدموا في تخزين الحجز -->
+        <div id="km-display" style="display:none;">-- كم</div>
+        <div id="price-detail" style="display:none;"></div>
+      </div>
+
+      <button class="book-btn" onclick="openClientModal()">🚗 احجز الآن</button>
+    </div>
+  </div>
+
+  <!-- MODAL تغيير كلمة السر -->
+  <div id="change-pass-modal" style="position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="background:var(--surface);border-radius:24px;padding:1.5rem;width:100%;max-width:360px;border:1px solid var(--border);">
+      <div style="font-size:1.1rem;font-weight:900;margin-bottom:1.2rem;text-align:center;">🔑 تغيير كلمة السر</div>
+      <input id="cp-current" type="password" placeholder="كلمة السر الحالية"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="cp-new" type="password" placeholder="كلمة السر الجديدة (6 أحرف على الأقل)"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="cp-confirm" type="password" placeholder="تأكيد كلمة السر الجديدة"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.5rem;display:block;">
+      <div id="cp-error" style="color:#ff4444;font-size:0.8rem;min-height:1.2rem;margin-bottom:0.8rem;text-align:center;"></div>
+      <div style="display:flex;gap:0.8rem;">
+        <button onclick="closeChangePassModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+        <button onclick="confirmChangePass()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL دخول الأدمن (Firebase Authentication حقيقي) -->
+  <div id="admin-login-modal" style="position:fixed;inset:0;z-index:850;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="background:var(--surface);border-radius:24px;padding:1.5rem;width:100%;max-width:340px;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🛡️</div>
+      <div style="font-size:1.05rem;font-weight:900;margin-bottom:1rem;">دخول لوحة الأدمن</div>
+      <input id="admin-login-email" type="email" placeholder="الإيميل" autocomplete="username"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.6rem;display:block;text-align:center;">
+      <input id="admin-login-pass" type="password" placeholder="كلمة السر" autocomplete="current-password"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.6rem;display:block;text-align:center;">
+      <div id="admin-login-error" style="color:#ff4444;font-size:0.8rem;min-height:1.1rem;margin-bottom:0.8rem;"></div>
+      <div style="display:flex;gap:0.8rem;">
+        <button onclick="closeAdminLoginModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+        <button id="admin-login-btn" onclick="submitAdminLogin()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">دخول</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL خطأ ثابت للحجز (بيفضل ظاهر لحد ما تقفله بنفسك - عشان تقدر تصوره) -->
+  <div id="booking-error-modal" style="position:fixed;inset:0;z-index:950;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="background:var(--surface);border-radius:24px;padding:1.5rem;width:100%;max-width:360px;border:2px solid #ff4444;text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:0.8rem;">⚠️</div>
+      <div style="font-size:1rem;font-weight:900;margin-bottom:0.8rem;color:#ff6666;">الحجز اتحفظ على جهازك بس، مش على السيرفر</div>
+      <div id="booking-error-detail" style="font-size:0.8rem;color:var(--muted);background:var(--card);border-radius:12px;padding:0.8rem;margin-bottom:1rem;word-break:break-word;text-align:left;direction:ltr;"></div>
+      <button onclick="document.getElementById('booking-error-modal').style.display='none'" style="width:100%;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">تمام، فهمت</button>
+    </div>
+  </div>
+
+  <div id="client-modal" style="position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.6);display:none;align-items:flex-end;">
+    <div style="background:var(--surface);width:100%;border-radius:28px 28px 0 0;padding:1.5rem;animation:slideUp 0.3s ease;">
+      <div style="text-align:center;margin-bottom:1.2rem;">
+        <div style="font-size:1.2rem;font-weight:900;">📋 بيانات الحجز</div>
+        <div style="font-size:0.8rem;color:var(--muted);">اكتب بياناتك عشان نكمّل الحجز</div>
+      </div>
+      <input id="client-name" type="text" placeholder="اسمك بالكامل" 
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="client-phone" type="tel" placeholder="رقم تليفونك" 
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <div style="display:flex;gap:0.8rem;margin-bottom:1rem;">
+        <div style="flex:1;">
+          <label style="font-size:0.75rem;color:var(--muted);margin-bottom:0.3rem;display:block;">📅 تاريخ المشوار</label>
+          <input id="client-trip-date" type="date"
+            style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.75rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;outline:none;display:block;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:0.75rem;color:var(--muted);margin-bottom:0.3rem;display:block;">⏰ الساعة</label>
+          <input id="client-trip-time" type="time"
+            style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.75rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;outline:none;display:block;">
+        </div>
+      </div>
+      
+      <!-- ملخص الرحلة -->
+      <div style="background:var(--card);border-radius:14px;padding:1rem;margin-bottom:1rem;border:1px solid var(--border);">
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.6rem;color:var(--muted);">ملخص الرحلة</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>📍 الانطلاق</span><span id="sum-from" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>🎯 الوجهة</span><span id="sum-to" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>🚗 نوع السيارة</span><span id="sum-car" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem;">
+          <span>📅 الموعد</span><span id="sum-datetime" style="font-weight:600;"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);">
+          <span style="font-weight:700;">💰 السعر</span><span id="sum-price" style="font-weight:900;color:var(--accent);font-size:1rem;"></span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.8rem;">
+        <button onclick="closeClientModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+        <button id="confirm-booking-btn" onclick="confirmBooking()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد الحجز</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- تسجيل سائق جديد -->
+  <div id="driver-modal" style="position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.6);display:none;align-items:flex-end;">
+    <div style="background:var(--surface);width:100%;border-radius:28px 28px 0 0;padding:1.5rem;max-height:85vh;overflow-y:auto;animation:slideUp 0.3s ease;">
+      <div style="text-align:center;margin-bottom:1.2rem;">
+        <div style="font-size:1.2rem;font-weight:900;">🚗 انضم كسائق</div>
+        <div style="font-size:0.8rem;color:var(--muted);">هنتواصل معاك خلال 48 ساعة بعد المراجعة</div>
+      </div>
+      <input id="driver-name" type="text" placeholder="اسمك بالكامل"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="driver-phone" type="tel" placeholder="رقم تليفونك"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="driver-city" type="text" placeholder="المحافظة"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="driver-car" type="text" placeholder="نوع السيارة وموديلها (مثال: تويوتا كورولا 2022)"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="driver-plate" type="text" placeholder="رقم لوحة السيارة"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+      <input id="driver-license-number" type="text" placeholder="رقم رخصة القيادة"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.85rem 1rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.95rem;outline:none;margin-bottom:0.8rem;display:block;">
+
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.4rem;">📷 صورة رخصة القيادة</div>
+      <input id="driver-license-photo" type="file" accept="image/*" capture="environment"
+        style="width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0.7rem;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.85rem;margin-bottom:0.4rem;display:block;">
+      <div id="license-photo-preview" style="margin-bottom:0.8rem;"></div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:1rem;">هيتم مراجعة الرخصة والتحقق منها يدويًا خلال 48 ساعة، وهتوصلك رسالة بعد التوثيق.</div>
+
+      <div id="driver-form-error" style="color:#ff4444;font-size:0.8rem;min-height:1.1rem;margin-bottom:0.6rem;"></div>
+
+      <div style="display:flex;gap:0.8rem;">
+        <button onclick="closeDriverModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
+        <button id="submit-driver-btn" onclick="submitDriverRegistration()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">📩 إرسال الطلب</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- لوحة الأدمن -->
+  <div id="admin-panel" style="position:fixed;inset:0;z-index:700;background:var(--bg);display:none;flex-direction:column;overflow-y:auto;">
+    <div style="background:var(--surface);padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;">
+      <button onclick="closeAdminPanel()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.9rem;color:var(--text);font-family:'Cairo',sans-serif;cursor:pointer;">← رجوع</button>
+      <div style="font-size:1.1rem;font-weight:900;">🛡️ لوحة الأدمن</div>
+      <div id="bookings-count" style="margin-right:auto;background:var(--accent);color:#fff;border-radius:50px;padding:0.2rem 0.8rem;font-size:0.8rem;font-weight:700;"></div>
+      <button onclick="changeAdminPassword()" style="background:rgba(217,119,87,0.12);border:1px solid var(--accent2);border-radius:10px;padding:0.5rem 0.9rem;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.8rem;cursor:pointer;">🔑 تغيير السر</button>
+      <button onclick="adminLogout()" style="background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.4);border-radius:10px;padding:0.5rem 0.9rem;color:#ff6666;font-family:'Cairo',sans-serif;font-size:0.8rem;cursor:pointer;">🚪 خروج</button>
+    </div>
+    <div id="firebase-status-banner" style="display:none;background:rgba(255,60,60,0.15);color:#ff8080;padding:0.7rem 1.2rem;font-size:0.8rem;text-align:center;"></div>
+    <div style="display:flex;gap:0.6rem;padding:1rem 1rem 0;">
+      <button id="admin-tab-bookings-btn" onclick="switchAdminTab('bookings')" style="flex:1;padding:0.7rem;border-radius:12px;border:1px solid var(--accent);background:rgba(217,119,87,0.15);color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">📋 الحجوزات</button>
+      <button id="admin-tab-drivers-btn" onclick="switchAdminTab('drivers')" style="flex:1;padding:0.7rem;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:'Cairo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🚗 طلبات السائقين <span id="pending-drivers-badge" style="display:none;background:#ff4444;color:#fff;border-radius:50px;padding:0.1rem 0.5rem;font-size:0.7rem;margin-right:0.3rem;"></span></button>
+    </div>
+    <div id="admin-tab-bookings" style="padding:1rem;">
+      <div id="bookings-list"></div>
+      <div id="no-bookings" style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:3rem;">📋</div>
+        <div>لا توجد حجوزات بعد</div>
+      </div>
+    </div>
+    <div id="admin-tab-drivers" style="padding:1rem;display:none;">
+      <div id="drivers-list"></div>
+      <div id="no-drivers" style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:3rem;">🚗</div>
+        <div>لا توجد طلبات سائقين بعد</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRIPS SCREEN -->
+  <div id="screen-trips" class="screen">
+    <div class="trips-header">
+      <h1>رحلاتي</h1>
+      <p>سجل رحلاتك السابقة</p>
+    </div>
+    <div id="trips-list"></div>
+    <div id="no-trips" style="text-align:center;padding:3rem;color:var(--muted);display:none;">
+      <div style="font-size:3rem;">🗺️</div>
+      <div style="margin-top:0.5rem;">لا توجد رحلات بعد</div>
+      <div style="font-size:0.8rem;margin-top:0.3rem;">احجز رحلتك الأولى الآن!</div>
+    </div>
+  </div>
+
+  <!-- WALLET SCREEN -->
+  <div id="screen-wallet" class="screen">
+    <div class="wallet-card">
+      <div class="wallet-label">رصيدك الحالي</div>
+      <div class="wallet-balance">350 ج.م</div>
+      <div class="wallet-sub">محفظة سفريات اكس الإلكترونية</div>
+    </div>
+
+    <div class="wallet-actions">
+      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">➕ شحن الرصيد</button>
+      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">💳 طرق الدفع</button>
+      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">🎁 الكوبونات</button>
+    </div>
+
+    <div class="transactions-title">آخر المعاملات</div>
+
+    <div class="transaction">
+      <div class="tx-icon trip">🚗</div>
+      <div class="tx-info">
+        <div class="tx-title">رحلة المعادي</div>
+        <div class="tx-date">اليوم، 10:30 ص</div>
+      </div>
+      <div class="tx-amount debit">-85 ج.م</div>
+    </div>
+
+    <div class="transaction">
+      <div class="tx-icon topup">💰</div>
+      <div class="tx-info">
+        <div class="tx-title">شحن رصيد</div>
+        <div class="tx-date">أمس، 9:00 ص</div>
+      </div>
+      <div class="tx-amount credit">+200 ج.م</div>
+    </div>
+
+    <div class="transaction">
+      <div class="tx-icon trip">🚗</div>
+      <div class="tx-info">
+        <div class="tx-title">رحلة مدينة نصر</div>
+        <div class="tx-date">أمس، 7:15 م</div>
+      </div>
+      <div class="tx-amount debit">-120 ج.م</div>
+    </div>
+
+    <div class="transaction">
+      <div class="tx-icon trip">🚌</div>
+      <div class="tx-info">
+        <div class="tx-title">رحلة حلوان</div>
+        <div class="tx-date">25 فبراير</div>
+      </div>
+      <div class="tx-amount debit">-40 ج.م</div>
+    </div>
+  </div>
+
+  <!-- PROFILE SCREEN -->
+  <div id="screen-profile" class="screen">
+    <div class="profile-hero">
+      <div class="profile-avatar" id="profile-avatar-initial">أ</div>
+      <div>
+        <div class="profile-name" id="profile-name-display">أحمد محمود</div>
+        <div class="profile-phone" id="profile-phone-display">+20 1234567890</div>
+        <div class="profile-rating">⭐ 4.9 • 47 رحلة</div>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">الحساب</div>
+      <div class="menu-item" onclick="openEditProfileModal()"><div class="menu-item-icon">👤</div><div class="menu-item-text">تعديل الملف الشخصي</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('🔔 إعدادات الإشعارات قريباً')"><div class="menu-item-icon">🔔</div><div class="menu-item-text">الإشعارات</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('🔒 صفحة الأمان والخصوصية قريباً')"><div class="menu-item-icon">🔒</div><div class="menu-item-text">الأمان والخصوصية</div><div class="menu-arrow">›</div></div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">المساعدة</div>
+      <div class="menu-item" onclick="openSupportChat()"><div class="menu-item-icon">💬</div><div class="menu-item-text">الدعم الفني</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('❓ صفحة الأسئلة الشائعة قريباً')"><div class="menu-item-icon">❓</div><div class="menu-item-text">الأسئلة الشائعة</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('⭐ شكراً لدعمك! رابط التقييم هيتضاف قريباً')"><div class="menu-item-icon">⭐</div><div class="menu-item-text">قيّم التطبيق</div><div class="menu-arrow">›</div></div>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-section-title">أخرى</div>
+      <div class="menu-item" onclick="openDriverModal()"><div class="menu-item-icon">🚗</div><div class="menu-item-text">انضم كسائق</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="logoutUser()" style="border-color:rgba(var(--accent2-rgb),0.2)"><div class="menu-item-icon" style="background:rgba(var(--accent2-rgb),0.12)">🚪</div><div class="menu-item-text" style="color:var(--accent2)">تسجيل الخروج</div></div>
+    </div>
+  </div>
+
+
+
+</div><!-- /app -->
+
+<!-- BOOKING SUCCESS MODAL -->
+<div id="booking-success-modal">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <div class="success-title">تم تأكيد حجزك بنجاح ✓</div>
+    <div class="success-msg" id="success-msg">هيتم التواصل معك في أقرب وقت لتأكيد تفاصيل رحلتك.</div>
+    <button class="success-btn" onclick="closeSuccessModal()">تمام</button>
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="input-modal" id="edit-profile-modal" onclick="if(event.target===this) closeEditProfileModal()">
+  <div class="input-modal-card">
+    <div class="modal-title">تعديل الملف الشخصي</div>
+    <input class="modal-input" id="edit-profile-name" placeholder="اسمك بالكامل" autocomplete="off">
+    <input class="modal-input" id="edit-profile-phone" type="tel" placeholder="رقم تليفونك" autocomplete="off">
+    <button class="modal-confirm" onclick="saveProfile()">💾 حفظ التعديلات</button>
+  </div>
+</div>
+
+<!-- INPUT MODAL -->
+<div class="input-modal" id="input-modal" onclick="closeInputModal(event)">
+  <div class="input-modal-card">
+    <div class="modal-title" id="modal-title">اختار نقطة الانطلاق</div>
+    <input class="modal-input" placeholder="دور باسم المحافظة..." id="modal-input" oninput="filterSuggestions(this.value)" autocomplete="off">
+    <div class="modal-suggestions" id="modal-suggestions" style="max-height:280px;overflow-y:auto;">
+      <div class="suggestion" onclick="selectLocation('القاهرة')"><span class="sug-icon">📍</span><div><div class="sug-text">القاهرة</div><div class="sug-sub">العاصمة</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الإسكندرية')"><span class="sug-icon">📍</span><div><div class="sug-text">الإسكندرية</div><div class="sug-sub">عروس البحر المتوسط</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الجيزة')"><span class="sug-icon">📍</span><div><div class="sug-text">الجيزة</div><div class="sug-sub">محافظة الجيزة</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الشرقية')"><span class="sug-icon">📍</span><div><div class="sug-text">الشرقية</div><div class="sug-sub">محافظة الشرقية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الدقهلية')"><span class="sug-icon">📍</span><div><div class="sug-text">الدقهلية</div><div class="sug-sub">محافظة الدقهلية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('البحيرة')"><span class="sug-icon">📍</span><div><div class="sug-text">البحيرة</div><div class="sug-sub">محافظة البحيرة</div></div></div>
+      <div class="suggestion" onclick="selectLocation('المنوفية')"><span class="sug-icon">📍</span><div><div class="sug-text">المنوفية</div><div class="sug-sub">محافظة المنوفية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('القليوبية')"><span class="sug-icon">📍</span><div><div class="sug-text">القليوبية</div><div class="sug-sub">محافظة القليوبية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الغربية')"><span class="sug-icon">📍</span><div><div class="sug-text">الغربية</div><div class="sug-sub">محافظة الغربية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('كفر الشيخ')"><span class="sug-icon">📍</span><div><div class="sug-text">كفر الشيخ</div><div class="sug-sub">محافظة كفر الشيخ</div></div></div>
+      <div class="suggestion" onclick="selectLocation('دمياط')"><span class="sug-icon">📍</span><div><div class="sug-text">دمياط</div><div class="sug-sub">محافظة دمياط</div></div></div>
+      <div class="suggestion" onclick="selectLocation('بورسعيد')"><span class="sug-icon">📍</span><div><div class="sug-text">بورسعيد</div><div class="sug-sub">محافظة بورسعيد</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الإسماعيلية')"><span class="sug-icon">📍</span><div><div class="sug-text">الإسماعيلية</div><div class="sug-sub">محافظة الإسماعيلية</div></div></div>
+      <div class="suggestion" onclick="selectLocation('السويس')"><span class="sug-icon">📍</span><div><div class="sug-text">السويس</div><div class="sug-sub">محافظة السويس</div></div></div>
+      <div class="suggestion" onclick="selectLocation('سيناء الشمالية')"><span class="sug-icon">📍</span><div><div class="sug-text">سيناء الشمالية</div><div class="sug-sub">محافظة شمال سيناء</div></div></div>
+      <div class="suggestion" onclick="selectLocation('سيناء الجنوبية')"><span class="sug-icon">📍</span><div><div class="sug-text">سيناء الجنوبية</div><div class="sug-sub">محافظة جنوب سيناء</div></div></div>
+      <div class="suggestion" onclick="selectLocation('البحر الأحمر')"><span class="sug-icon">📍</span><div><div class="sug-text">البحر الأحمر</div><div class="sug-sub">محافظة البحر الأحمر</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الفيوم')"><span class="sug-icon">📍</span><div><div class="sug-text">الفيوم</div><div class="sug-sub">محافظة الفيوم</div></div></div>
+      <div class="suggestion" onclick="selectLocation('بني سويف')"><span class="sug-icon">📍</span><div><div class="sug-text">بني سويف</div><div class="sug-sub">محافظة بني سويف</div></div></div>
+      <div class="suggestion" onclick="selectLocation('المنيا')"><span class="sug-icon">📍</span><div><div class="sug-text">المنيا</div><div class="sug-sub">محافظة المنيا</div></div></div>
+      <div class="suggestion" onclick="selectLocation('أسيوط')"><span class="sug-icon">📍</span><div><div class="sug-text">أسيوط</div><div class="sug-sub">محافظة أسيوط</div></div></div>
+      <div class="suggestion" onclick="selectLocation('سوهاج')"><span class="sug-icon">📍</span><div><div class="sug-text">سوهاج</div><div class="sug-sub">محافظة سوهاج</div></div></div>
+      <div class="suggestion" onclick="selectLocation('قنا')"><span class="sug-icon">📍</span><div><div class="sug-text">قنا</div><div class="sug-sub">محافظة قنا</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الأقصر')"><span class="sug-icon">📍</span><div><div class="sug-text">الأقصر</div><div class="sug-sub">محافظة الأقصر</div></div></div>
+      <div class="suggestion" onclick="selectLocation('أسوان')"><span class="sug-icon">📍</span><div><div class="sug-text">أسوان</div><div class="sug-sub">محافظة أسوان</div></div></div>
+      <div class="suggestion" onclick="selectLocation('مطروح')"><span class="sug-icon">📍</span><div><div class="sug-text">مطروح</div><div class="sug-sub">محافظة مطروح</div></div></div>
+      <div class="suggestion" onclick="selectLocation('الوادي الجديد')"><span class="sug-icon">📍</span><div><div class="sug-text">الوادي الجديد</div><div class="sug-sub">محافظة الوادي الجديد</div></div></div>
+      <div class="suggestion" onclick="selectLocation('مطار القاهرة')"><span class="sug-icon">✈️</span><div><div class="sug-text">مطار القاهرة</div><div class="sug-sub">مطار القاهرة الدولي</div></div></div>
+      <div class="suggestion" onclick="selectLocation('مطار سفنكس')"><span class="sug-icon">✈️</span><div><div class="sug-text">مطار سفنكس</div><div class="sug-sub">مطار سفنكس الدولي</div></div></div>
+      <div class="suggestion" onclick="selectLocation('مطار برج العرب')"><span class="sug-icon">✈️</span><div><div class="sug-text">مطار برج العرب</div><div class="sug-sub">مطار برج العرب الدولي</div></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

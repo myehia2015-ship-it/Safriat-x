@@ -1,0 +1,47 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "roles": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('roles').child(auth.uid).val() === 'admin')",
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'"
+      }
+    },
+
+    "bookings": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'admin' || root.child('roles').child(auth.uid).val() === 'driver')",
+      ".indexOn": ["status", "clientUid", "tripDate"],
+
+      "$bookingId": {
+        ".read": "auth != null && (data.child('clientUid').val() === auth.uid || root.child('roles').child(auth.uid).val() === 'admin' || root.child('roles').child(auth.uid).val() === 'driver')",
+        ".write": "auth != null && (
+          (!data.exists() && newData.child('clientUid').val() === auth.uid && newData.hasChildren(['id','name','phone','from','to','car','price','priceValue','tripDate','tripTime','status','clientUid'])) ||
+          (data.exists() && root.child('roles').child(auth.uid).val() === 'admin') ||
+          (data.exists() && root.child('roles').child(auth.uid).val() === 'driver' && newData.child('status').val() !== data.child('status').val())
+        )",
+        ".validate": "newData.hasChildren(['id','name','phone','from','to','car','price','clientUid']) && newData.child('phone').isString() && newData.child('phone').val().length === 11"
+      }
+    },
+
+    "drivers": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'",
+      "$driverId": {
+        ".read": "auth != null && (auth.uid === $driverId || root.child('roles').child(auth.uid).val() === 'admin')",
+        ".write": "auth != null && (
+          (!data.exists() && newData.child('uid').val() === auth.uid) ||
+          root.child('roles').child(auth.uid).val() === 'admin'
+        )"
+      }
+    },
+
+    "driverRequests": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'",
+      "$reqId": {
+        ".write": "auth != null && !data.exists()",
+        ".validate": "newData.hasChildren(['name','phone','city','car'])"
+      }
+    }
+  }
+}
