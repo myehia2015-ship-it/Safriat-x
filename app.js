@@ -827,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // بيبعت تفاصيل الحجز لـ Pipedream عشان يوصل تنبيه واتساب فوري للأدمن
 // "Fire and forget": مش بنستنى الرد ولا بنوقف حاجة لو فشل، التنبيه ثانوي والحجز الأساسي اتحفظ بالفعل
-const WHATSAPP_NOTIFY_WEBHOOK = 'https://eo3m45xub7n29ib.m.pipedream.net';
+const WHATSAPP_NOTIFY_WEBHOOK = 'https://eo6kztn7a5s7glv.m.pipedream.net';
 function notifyWhatsAppNewBooking(booking) {
   fetch(WHATSAPP_NOTIFY_WEBHOOK, {
     method: 'POST',
