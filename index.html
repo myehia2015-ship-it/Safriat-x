@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>سفريات اكس - نقل ذكي</title>
 <meta name="description" content="احجز رحلتك الخاصة بين المحافظات بسهولة. السعر بيتحسب أوتوماتيك حسب المسافة، من غير فصال ولا مكالمات.">
-<meta name="theme-color" content="#d97757">
+<meta name="theme-color" content="#2f78c4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="سفريات اكس">
@@ -45,13 +45,13 @@
       <div class="notif-btn" onclick="toggleMenu()" aria-label="القائمة الجانبية" role="button">☰</div>
       <div class="topbar-avatar" id="topbar-avatar-initial" onclick="showScreen('profile')" aria-label="الملف الشخصي" role="button">أ</div>
     </div>
-    <div class="topbar-brand" id="logo-tap-trigger" onclick="handleLogoTap()" style="color:#d97757;font-size:1rem;margin-right:auto;margin-left:0;cursor:pointer;user-select:none;">سفريات اكس 🚗</div>
+    <div class="topbar-brand" id="logo-tap-trigger" onclick="handleLogoTap()" style="color:#2f78c4;font-size:1rem;margin-right:auto;margin-left:0;cursor:pointer;user-select:none;">سفريات اكس 🚗</div>
   </div>
 
   <!-- SIDE MENU -->
   <div id="side-menu" style="position:fixed;top:0;right:0;width:70%;max-width:280px;height:100vh;background:var(--surface);z-index:999;transform:translateX(100%);transition:transform 0.3s ease;padding:2rem 1.2rem;border-left:1px solid var(--border);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
-      <div style="font-size:1.1rem;font-weight:900;color:#d97757;">سفريات اكس</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#2f78c4;">سفريات اكس</div>
       <div onclick="toggleMenu()" style="cursor:pointer;font-size:1.3rem;">✕</div>
     </div>
     <div onclick="showScreen('home');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🏠 <span>الرئيسية</span></div>
@@ -86,7 +86,7 @@
             <div class="input-label">محافظة الانطلاق</div>
             <div class="input-value" id="from-text" style="color:var(--muted)">جاري تحديد موقعك...</div>
           </div>
-          <span id="from-gps-icon" style="color:#d97757;font-size:0.85rem;font-weight:700;">GPS</span>
+          <span id="from-gps-icon" style="color:#2f78c4;font-size:0.85rem;font-weight:700;">GPS</span>
         </div>
         <div class="input-row" onclick="openInputModal('to')">
           <div class="input-icon icon-to">🎯</div>
@@ -99,7 +99,7 @@
       </div>
 
       <!-- شريط تحديد الموقع -->
-      <div id="map-pick-bar" style="display:none;background:#d97757;color:white;text-align:center;padding:0.7rem;border-radius:12px;margin-bottom:0.8rem;font-size:0.9rem;font-weight:700;">
+      <div id="map-pick-bar" style="display:none;background:#2f78c4;color:white;text-align:center;padding:0.7rem;border-radius:12px;margin-bottom:0.8rem;font-size:0.9rem;font-weight:700;">
         🎯 اضغط على الخريطة لتحديد الموقع
         <span onclick="cancelMapPick()" style="float:left;cursor:pointer;font-size:1.1rem;">✕</span>
       </div>
@@ -108,15 +108,18 @@
       <div class="car-types">
         <div class="car-type selected" onclick="selectCar(this, 'سيدان', 8.5)">
           <span class="car-type-icon">🚗</span>
-          <div class="car-type-name">سيدان</div>
+          <div class="car-info"><div class="car-type-name">سيدان</div>
+          <div class="car-sub">حتى 4 ركاب</div></div><span class="car-radio"></span>
         </div>
         <div class="car-type" onclick="selectCar(this, '7 ركاب', 10)">
           <span class="car-type-icon">🚙</span>
-          <div class="car-type-name">7 ركاب</div>
+          <div class="car-info"><div class="car-type-name">7 ركاب</div>
+          <div class="car-sub">مناسبة للعيلة</div></div><span class="car-radio"></span>
         </div>
         <div class="car-type" onclick="selectCar(this, '14 راكب', 12)">
           <span class="car-type-icon">🚌</span>
-          <div class="car-type-name">14 راكب</div>
+          <div class="car-info"><div class="car-type-name">14 راكب</div>
+          <div class="car-sub">للمجموعات</div></div><span class="car-radio"></span>
         </div>
       </div>
 
@@ -136,7 +139,8 @@
         <div id="price-detail" style="display:none;"></div>
       </div>
 
-      <button class="book-btn" onclick="openClientModal()">🚗 احجز الآن</button>
+      <button class="book-btn" onclick="openClientModal()">احجز الآن</button>
+      <div class="book-note">السعر نهائي، من غير فصال ولا مكالمات</div>
     </div>
   </div>
 
@@ -153,7 +157,7 @@
       <div id="cp-error" style="color:#ff4444;font-size:0.8rem;min-height:1.2rem;margin-bottom:0.8rem;text-align:center;"></div>
       <div style="display:flex;gap:0.8rem;">
         <button onclick="closeChangePassModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
-        <button onclick="confirmChangePass()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد</button>
+        <button onclick="confirmChangePass()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد</button>
       </div>
     </div>
   </div>
@@ -170,7 +174,7 @@
       <div id="admin-login-error" style="color:#ff4444;font-size:0.8rem;min-height:1.1rem;margin-bottom:0.8rem;"></div>
       <div style="display:flex;gap:0.8rem;">
         <button onclick="closeAdminLoginModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
-        <button id="admin-login-btn" onclick="submitAdminLogin()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">دخول</button>
+        <button id="admin-login-btn" onclick="submitAdminLogin()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">دخول</button>
       </div>
     </div>
   </div>
@@ -181,7 +185,7 @@
       <div style="font-size:2.5rem;margin-bottom:0.8rem;">⚠️</div>
       <div style="font-size:1rem;font-weight:900;margin-bottom:0.8rem;color:#ff6666;">الحجز اتحفظ على جهازك بس، مش على السيرفر</div>
       <div id="booking-error-detail" style="font-size:0.8rem;color:var(--muted);background:var(--card);border-radius:12px;padding:0.8rem;margin-bottom:1rem;word-break:break-word;text-align:left;direction:ltr;"></div>
-      <button onclick="document.getElementById('booking-error-modal').style.display='none'" style="width:100%;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">تمام، فهمت</button>
+      <button onclick="document.getElementById('booking-error-modal').style.display='none'" style="width:100%;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">تمام، فهمت</button>
     </div>
   </div>
 
@@ -230,7 +234,7 @@
 
       <div style="display:flex;gap:0.8rem;">
         <button onclick="closeClientModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
-        <button id="confirm-booking-btn" onclick="confirmBooking()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد الحجز</button>
+        <button id="confirm-booking-btn" onclick="confirmBooking()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد الحجز</button>
       </div>
     </div>
   </div>
@@ -265,7 +269,7 @@
 
       <div style="display:flex;gap:0.8rem;">
         <button onclick="closeDriverModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
-        <button id="submit-driver-btn" onclick="submitDriverRegistration()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#d97757,#e2967d);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">📩 إرسال الطلب</button>
+        <button id="submit-driver-btn" onclick="submitDriverRegistration()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">📩 إرسال الطلب</button>
       </div>
     </div>
   </div>
@@ -276,12 +280,12 @@
       <button onclick="closeAdminPanel()" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:0.5rem 0.9rem;color:var(--text);font-family:'Cairo',sans-serif;cursor:pointer;">← رجوع</button>
       <div style="font-size:1.1rem;font-weight:900;">🛡️ لوحة الأدمن</div>
       <div id="bookings-count" style="margin-right:auto;background:var(--accent);color:#fff;border-radius:50px;padding:0.2rem 0.8rem;font-size:0.8rem;font-weight:700;"></div>
-      <button onclick="changeAdminPassword()" style="background:rgba(217,119,87,0.12);border:1px solid var(--accent2);border-radius:10px;padding:0.5rem 0.9rem;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.8rem;cursor:pointer;">🔑 تغيير السر</button>
+      <button onclick="changeAdminPassword()" style="background:rgba(47,120,196,0.12);border:1px solid var(--accent2);border-radius:10px;padding:0.5rem 0.9rem;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.8rem;cursor:pointer;">🔑 تغيير السر</button>
       <button onclick="adminLogout()" style="background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.4);border-radius:10px;padding:0.5rem 0.9rem;color:#ff6666;font-family:'Cairo',sans-serif;font-size:0.8rem;cursor:pointer;">🚪 خروج</button>
     </div>
     <div id="firebase-status-banner" style="display:none;background:rgba(255,60,60,0.15);color:#ff8080;padding:0.7rem 1.2rem;font-size:0.8rem;text-align:center;"></div>
     <div style="display:flex;gap:0.6rem;padding:1rem 1rem 0;">
-      <button id="admin-tab-bookings-btn" onclick="switchAdminTab('bookings')" style="flex:1;padding:0.7rem;border-radius:12px;border:1px solid var(--accent);background:rgba(217,119,87,0.15);color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">📋 الحجوزات</button>
+      <button id="admin-tab-bookings-btn" onclick="switchAdminTab('bookings')" style="flex:1;padding:0.7rem;border-radius:12px;border:1px solid var(--accent);background:rgba(47,120,196,0.15);color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">📋 الحجوزات</button>
       <button id="admin-tab-drivers-btn" onclick="switchAdminTab('drivers')" style="flex:1;padding:0.7rem;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:'Cairo',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🚗 طلبات السائقين <span id="pending-drivers-badge" style="display:none;background:#ff4444;color:#fff;border-radius:50px;padding:0.1rem 0.5rem;font-size:0.7rem;margin-right:0.3rem;"></span></button>
     </div>
     <div id="admin-tab-bookings" style="padding:1rem;">
@@ -466,3 +470,4 @@
 <script src="app.js"></script>
 </body>
 </html>
+

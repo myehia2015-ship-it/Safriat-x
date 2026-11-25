@@ -124,7 +124,11 @@ function initMap() {
       const nearest = getNearestGov(userLat, userLng);
       if (fromMarker) map.removeLayer(fromMarker);
       fromMarker = L.marker([userLat, userLng], { icon: makeFromIcon() }).addTo(map);
-      fromMarker.bindPopup(`<b>📍 موقعك: ${nearest}</b>`).openPopup();
+      fromMarker.bindPopup(`<b>📍 موقعك: ${nearest}</b><br><br>
+        <button onclick="openGoogleMaps(${userLat},${userLng})"
+          style="background:#2f78c4;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
+          🗺️ افتح في Google Maps
+        </button>`).openPopup();
 
       document.getElementById('location-text').textContent = '📍 ' + nearest;
       document.getElementById('from-text').textContent = nearest;
@@ -132,14 +136,15 @@ function initMap() {
       document.getElementById('from-gps-icon').textContent = '✓';
       autoCalcPrice();
     }, () => {
-      document.getElementById('location-text').textContent = '📍 القاهرة، مصر';
-      document.getElementById('from-text').textContent = 'القاهرة';
-      document.getElementById('from-text').style.color = 'var(--text)';
+      document.getElementById('location-text').textContent = '⚠️ فعّل الموقع من إعدادات المتصفح';
+      document.getElementById('from-text').textContent = 'اختار نقطة الانطلاق';
+      document.getElementById('from-text').style.color = '';
+      showToast('⚠️ الموقع مش مفعّل، فعّله من إعدادات المتصفح أو اختار نقطة الانطلاق بنفسك');
     }, { enableHighAccuracy: true, timeout: 10000 });
   } else {
-    document.getElementById('location-text').textContent = '📍 القاهرة، مصر';
-    document.getElementById('from-text').textContent = 'القاهرة';
-    document.getElementById('from-text').style.color = 'var(--text)';
+    document.getElementById('location-text').textContent = '⚠️ المتصفح مش بيدعم تحديد الموقع';
+    document.getElementById('from-text').textContent = 'اختار نقطة الانطلاق';
+    document.getElementById('from-text').style.color = '';
   }
 }
 
@@ -162,10 +167,10 @@ function openFromModal() {
     const gpsDiv = document.createElement('div');
     gpsDiv.id = gpsBtnId;
     gpsDiv.className = 'suggestion';
-    gpsDiv.style.background = 'rgba(217,119,87,0.12)';
+    gpsDiv.style.background = 'rgba(47,120,196,0.12)';
     gpsDiv.style.borderRadius = '10px';
     gpsDiv.style.marginBottom = '0.5rem';
-    gpsDiv.innerHTML = `<span class="sug-icon">📡</span><div><div class="sug-text" style="color:#d97757;font-weight:700;">تحديد تلقائي من GPS</div><div class="sug-sub">موقعك الحالي</div></div>`;
+    gpsDiv.innerHTML = `<span class="sug-icon">📡</span><div><div class="sug-text" style="color:#2f78c4;font-weight:700;">تحديد تلقائي من GPS</div><div class="sug-sub">موقعك الحالي</div></div>`;
     gpsDiv.onclick = () => {
       useGPSForFrom();
       document.getElementById('input-modal').classList.remove('visible');
@@ -193,6 +198,11 @@ function useGPSForFrom() {
     document.getElementById('location-text').textContent = '📍 ' + nearest;
     if (fromMarker) map.removeLayer(fromMarker);
     fromMarker = L.marker([userLat, userLng], { icon: makeFromIcon() }).addTo(map);
+    fromMarker.bindPopup(`<b>📍 موقعك: ${nearest}</b><br><br>
+      <button onclick="openGoogleMaps(${userLat},${userLng})"
+        style="background:#2f78c4;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
+        🗺️ افتح في Google Maps
+      </button>`);
     map.setView([userLat, userLng], 15);
     autoCalcPrice();
     showToast('✅ تم تحديد موقعك: ' + nearest);
@@ -203,7 +213,7 @@ function useGPSForFrom() {
 
 function makeFromIcon() {
   return L.divIcon({
-    html: `<div style="width:18px;height:18px;background:#d97757;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(217,119,87,0.8)"></div>`,
+    html: `<div style="width:18px;height:18px;background:#2f78c4;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(47,120,196,0.8)"></div>`,
     iconSize: [18, 18], iconAnchor: [9, 9]
   });
 }
@@ -241,7 +251,7 @@ function toggleFineTune() {
 
     fromMarker = L.marker([userLat, userLng], { icon: makeFromIcon() }).addTo(map);
     btn.textContent = '🎯 ظبط نقطة الانطلاق بدقة';
-    btn.style.background = '#d97757';
+    btn.style.background = '#2f78c4';
     autoCalcPrice();
     showToast('✅ اتحددت نقطة انطلاقك بدقة');
   }
@@ -251,7 +261,7 @@ function onFineTuneMoveEnd() { document.getElementById('center-pin').classList.r
 
 function makeDestIcon() {
   return L.divIcon({
-    html: `<div style="width:18px;height:18px;background:#d97757;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(217,119,87,0.8)"></div>`,
+    html: `<div style="width:18px;height:18px;background:#2f78c4;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(47,120,196,0.8)"></div>`,
     iconSize: [18, 18], iconAnchor: [9, 9]
   });
 }
@@ -264,8 +274,8 @@ function centerMapOnGov(name) {
   fromMarker = L.marker(coords, { icon: makeFromIcon() }).addTo(map);
   fromMarker.bindPopup(`
     <b>📍 الانطلاق: ${name}</b><br><br>
-    <button onclick="openGoogleMaps(${coords[0]},${coords[1]})" 
-      style="background:#d97757;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
+    <button onclick="openGoogleMaps(${coords[0]},${coords[1]},'${name}')" 
+      style="background:#2f78c4;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
       🗺️ افتح في Google Maps
     </button>
   `).openPopup();
@@ -283,8 +293,8 @@ function showBothMarkers(toName) {
   destMarkerGlobal = L.marker(destCoords, { icon: makeDestIcon() }).addTo(map);
   destMarkerGlobal.bindPopup(`
     <b>🎯 الوجهة: ${toName}</b><br><br>
-    <button onclick="openGoogleMaps(${destCoords[0]},${destCoords[1]})"
-      style="background:#d97757;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
+    <button onclick="openGoogleMaps(${destCoords[0]},${destCoords[1]},'${toName}')"
+      style="background:#2f78c4;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:Cairo,sans-serif;font-size:13px;width:100%">
       🗺️ افتح في Google Maps
     </button>
   `).openPopup();
@@ -303,7 +313,7 @@ function showToast(msg) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'toast-msg';
-    toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:0.7rem 1.2rem;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:opacity 0.3s;white-space:nowrap;font-family:Cairo,sans-serif;border:1px solid rgba(217,119,87,0.3);';
+    toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:0.7rem 1.2rem;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:opacity 0.3s;white-space:nowrap;font-family:Cairo,sans-serif;border:1px solid rgba(47,120,196,0.3);';
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
@@ -518,8 +528,19 @@ function selectLocation(loc) {
   selectedLocation = '';
 }
 
-function openGoogleMaps(lat, lng) {
-  window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+// label = اسم محافظة/مطار اختارها من القائمة: بندور بالاسم (نقطة المركز الثابتة كانت بتطلّع مكان عشوائي).
+// من غير label (GPS أو نقطة من الخريطة): بنستخدم الإحداثيات الحقيقية.
+function openGoogleMaps(lat, lng, label) {
+  let query;
+  if (label) {
+    query = label.indexOf('مطار') === 0 ? label + '، مصر' : 'محافظة ' + label + '، مصر';
+  } else if (isFinite(lat) && isFinite(lng)) {
+    query = lat + ',' + lng;
+  } else {
+    showToast('⚠️ الموقع مش متاح، فعّل الموقع من إعدادات المتصفح');
+    return;
+  }
+  window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query), '_blank');
 }
 
 let mapPickMode = null;
@@ -560,7 +581,7 @@ function handleMapClick(lat, lng) {
         fromMarker.bindPopup(`
           <b>📍 الانطلاق</b><br>${placeName}<br><br>
           <button onclick="openGoogleMaps(${lat},${lng})"
-            style="background:#d97757;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;width:100%">
+            style="background:#2f78c4;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;width:100%">
             🗺️ افتح في Google Maps
           </button>
         `).openPopup();
@@ -576,7 +597,7 @@ function handleMapClick(lat, lng) {
         destMarkerGlobal.bindPopup(`
           <b>🎯 الوجهة</b><br>${placeName}<br><br>
           <button onclick="openGoogleMaps(${lat},${lng})"
-            style="background:#d97757;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;width:100%">
+            style="background:#2f78c4;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px;width:100%">
             🗺️ افتح في Google Maps
           </button>
         `).openPopup();
@@ -787,6 +808,10 @@ function openClientModal() {
   const to = document.getElementById('to-text').textContent;
   if (to === 'اختار وجهتك') {
     showToast('⚠️ اختار الوجهة الأول');
+    return;
+  }
+  if (from === 'اختار نقطة الانطلاق') {
+    showToast('⚠️ اختار نقطة الانطلاق الأول');
     return;
   }
   if (from === 'جاري تحديد موقعك...') {
@@ -1009,7 +1034,7 @@ function switchAdminTab(tab) {
     driversPane.style.display = 'block';
     bookingsPane.style.display = 'none';
     driversBtn.style.border = '1px solid var(--accent)';
-    driversBtn.style.background = 'rgba(217,119,87,0.15)';
+    driversBtn.style.background = 'rgba(47,120,196,0.15)';
     driversBtn.style.color = 'var(--accent)';
     bookingsBtn.style.border = '1px solid var(--border)';
     bookingsBtn.style.background = 'var(--card)';
@@ -1018,7 +1043,7 @@ function switchAdminTab(tab) {
     bookingsPane.style.display = 'block';
     driversPane.style.display = 'none';
     bookingsBtn.style.border = '1px solid var(--accent)';
-    bookingsBtn.style.background = 'rgba(217,119,87,0.15)';
+    bookingsBtn.style.background = 'rgba(47,120,196,0.15)';
     bookingsBtn.style.color = 'var(--accent)';
     driversBtn.style.border = '1px solid var(--border)';
     driversBtn.style.background = 'var(--card)';
@@ -1218,7 +1243,7 @@ function renderBookings() {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:0.8rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
         <div style="font-size:1rem;font-weight:700;">👤 ${escapeHtml(b.name)}</div>
-        <div style="background:${b.status==='جديد'?'rgba(168,230,61,0.2)':'rgba(217,119,87,0.25)'};color:${b.status==='جديد'?'var(--accent)':'var(--accent2)'};border-radius:50px;padding:0.2rem 0.7rem;font-size:0.75rem;font-weight:700;">${escapeHtml(b.status)}</div>
+        <div style="background:${b.status==='جديد'?'rgba(168,230,61,0.2)':'rgba(47,120,196,0.25)'};color:${b.status==='جديد'?'var(--accent)':'var(--accent2)'};border-radius:50px;padding:0.2rem 0.7rem;font-size:0.75rem;font-weight:700;">${escapeHtml(b.status)}</div>
       </div>
       <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.3rem;">📞 ${escapeHtml(b.phone)}</div>
       <div style="font-size:0.82rem;margin-bottom:0.2rem;">📍 <b>${escapeHtml(b.from)}</b> ← 🎯 <b>${escapeHtml(b.to)}</b></div>
@@ -1230,7 +1255,7 @@ function renderBookings() {
         <div style="font-size:1.1rem;font-weight:900;color:var(--accent);">${escapeHtml(b.price)}</div>
         <div style="display:flex;gap:0.5rem;">
           <button onclick="updateStatus(${b.id},'قيد التنفيذ')" style="padding:0.4rem 0.7rem;background:rgba(168,230,61,0.15);border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">✅ قبول</button>
-          <button onclick="updateStatus(${b.id},'ملغي')" style="padding:0.4rem 0.7rem;background:rgba(217,119,87,0.12);border:1px solid var(--accent2);border-radius:8px;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">❌ إلغاء</button>
+          <button onclick="updateStatus(${b.id},'ملغي')" style="padding:0.4rem 0.7rem;background:rgba(47,120,196,0.12);border:1px solid var(--accent2);border-radius:8px;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">❌ إلغاء</button>
           <button onclick="deleteBooking(${b.id})" style="padding:0.4rem 0.7rem;background:rgba(255,0,0,0.1);border:1px solid red;border-radius:8px;color:red;font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">🗑️</button>
         </div>
       </div>
@@ -1282,7 +1307,7 @@ function renderDrivers() {
   noDrivers.style.display = 'none';
   list.innerHTML = drivers.map(d => {
     const statusColor = d.status === 'نشط' ? 'var(--accent)' : (d.status === 'مرفوض' ? '#ff6666' : 'var(--accent2)');
-    const statusBg = d.status === 'نشط' ? 'rgba(217,119,87,0.2)' : (d.status === 'مرفوض' ? 'rgba(255,60,60,0.15)' : 'rgba(226,150,125,0.2)');
+    const statusBg = d.status === 'نشط' ? 'rgba(47,120,196,0.2)' : (d.status === 'مرفوض' ? 'rgba(255,60,60,0.15)' : 'rgba(106,166,227,0.2)');
     return `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:0.8rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
@@ -1296,8 +1321,8 @@ function renderDrivers() {
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="font-size:0.72rem;color:var(--muted);">${escapeHtml(d.time)}</div>
         <div style="display:flex;gap:0.5rem;">
-          ${!d.verified ? `<button onclick="verifyDriver(${d.id})" style="padding:0.4rem 0.7rem;background:rgba(217,119,87,0.15);border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">✅ توثيق</button>` : ''}
-          ${d.status !== 'مرفوض' ? `<button onclick="rejectDriver(${d.id})" style="padding:0.4rem 0.7rem;background:rgba(217,119,87,0.12);border:1px solid var(--accent2);border-radius:8px;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">❌ رفض</button>` : ''}
+          ${!d.verified ? `<button onclick="verifyDriver(${d.id})" style="padding:0.4rem 0.7rem;background:rgba(47,120,196,0.15);border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">✅ توثيق</button>` : ''}
+          ${d.status !== 'مرفوض' ? `<button onclick="rejectDriver(${d.id})" style="padding:0.4rem 0.7rem;background:rgba(47,120,196,0.12);border:1px solid var(--accent2);border-radius:8px;color:var(--accent2);font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">❌ رفض</button>` : ''}
           <button onclick="deleteDriver(${d.id})" style="padding:0.4rem 0.7rem;background:rgba(255,0,0,0.1);border:1px solid red;border-radius:8px;color:red;font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;">🗑️</button>
         </div>
       </div>
@@ -1438,4 +1463,5 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
 

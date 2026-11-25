@@ -1,15 +1,15 @@
   :root {
-    --bg: #0f0f0f;
-    --surface: #1a1a1a;
-    --card: #242424;
-    --accent: #d97757;
-    --accent2: #e2967d;
-    --text: #f5f5f5;
-    --muted: #a0a0a0;
-    --border: rgba(217,119,87,0.25);
-    --glow: 0 4px 24px rgba(217,119,87,0.3);
-    --accent-rgb: 217,119,87;
-    --accent2-rgb: 226,150,125;
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --card: #eef3f9;
+    --accent: #2f78c4;
+    --accent2: #6aa6e3;
+    --text: #1b2733;
+    --muted: #66758a;
+    --border: rgba(47,120,196,0.25);
+    --glow: 0 4px 24px rgba(47,120,196,0.3);
+    --accent-rgb: 47,120,196;
+    --accent2-rgb: 106,166,227;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,7 +25,7 @@
   /* SPLASH SCREEN */
   #splash {
     position: fixed; inset: 0; z-index: 1000;
-    background: linear-gradient(160deg, #0f0f0f 0%, #1a1a1a 100%);
+    background: linear-gradient(160deg, #f4f7fb 0%, #e1e9f5 100%);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     animation: fadeOutSplash 0.5s ease 2.5s forwards;
@@ -34,8 +34,8 @@
   .splash-logo {
     font-size: 20vw;
     font-weight: 900;
-    color: #d97757;
-    -webkit-text-fill-color: #d97757;
+    color: #2f78c4;
+    -webkit-text-fill-color: #2f78c4;
     background: none;
     line-height: 1;
     text-align: center;
@@ -72,18 +72,18 @@
   .topbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     padding: 1rem 1.2rem;
-    background: linear-gradient(180deg, rgba(20,17,14,0.98) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, transparent 100%);
     display: flex; align-items: center; justify-content: space-between;
   }
 
   .topbar-brand {
     font-size: 1.5rem; font-weight: 900;
-    color: #d97757;
+    color: #2f78c4;
   }
 
   .topbar-avatar {
     width: 38px; height: 38px; border-radius: 50%;
-    background: linear-gradient(135deg, #d97757, #e2967d);
+    background: linear-gradient(135deg, #2f78c4, #6aa6e3);
     display: flex; align-items: center; justify-content: center;
     font-size: 1rem; font-weight: 700; color: #fff;
     cursor: pointer;
@@ -117,12 +117,12 @@
   .map-overlay {
     position: absolute; top: 0; left: 0; right: 0;
     height: 50vh; pointer-events: none; z-index: 10;
-    background: linear-gradient(180deg, rgba(20,17,14,0.6) 0%, transparent 30%, transparent 70%, rgba(20,17,14,0.9) 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 30%, transparent 80%, rgba(255,255,255,0.6) 100%);
   }
 
   .location-pill {
     position: absolute; top: 4.5rem; left: 50%; transform: translateX(-50%);
-    z-index: 20; background: rgba(26,34,53,0.95);
+    z-index: 20; background: rgba(255,255,255,0.95);
     border: 1px solid var(--border); border-radius: 50px;
     padding: 0.6rem 1.2rem;
     display: flex; align-items: center; gap: 0.5rem;
@@ -148,10 +148,10 @@
 
   .fine-tune-btn {
     position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
-    z-index: 20; background: #d97757; color: #fff; border: none;
+    z-index: 20; background: #2f78c4; color: #fff; border: none;
     border-radius: 50px; padding: 0.55rem 1.1rem; font-family: 'Cairo', sans-serif;
     font-size: 0.8rem; font-weight: 700; cursor: pointer;
-    box-shadow: 0 4px 10px rgba(217,119,87,0.4);
+    box-shadow: 0 4px 10px rgba(47,120,196,0.4);
   }
 
   /* BOOKING CARD */
@@ -200,8 +200,8 @@
     font-size: 0.9rem; flex-shrink: 0;
   }
 
-  .icon-from { background: rgba(217,119,87,0.15); color: var(--accent); }
-  .icon-to { background: rgba(226,150,125,0.15); color: var(--accent2); }
+  .icon-from { background: rgba(47,120,196,0.15); color: var(--accent); }
+  .icon-to { background: rgba(106,166,227,0.15); color: var(--accent2); }
 
   .input-text { flex: 1; }
   .input-label { font-size: 0.7rem; color: var(--muted); }
@@ -235,7 +235,7 @@
   /* BOOK BTN */
   .book-btn {
     width: 100%; padding: 1rem;
-    background: linear-gradient(135deg, #d97757, #e2967d);
+    background: linear-gradient(135deg, #2f78c4, #6aa6e3);
     border: none; border-radius: 16px;
     color: #fff; font-family: 'Cairo', sans-serif;
     font-size: 1rem; font-weight: 700;
@@ -276,7 +276,7 @@
 
   .success-btn {
     width: 100%; padding: 0.9rem;
-    background: linear-gradient(135deg, #d97757, #e2967d);
+    background: linear-gradient(135deg, #2f78c4, #6aa6e3);
     border: none; border-radius: 14px; color: #fff;
     font-family: 'Cairo', sans-serif; font-size: 0.9rem; font-weight: 700;
     cursor: pointer; transition: all 0.2s;
@@ -319,7 +319,7 @@
   #screen-wallet { padding: 5rem 1.2rem 1rem; }
 
   .wallet-card {
-    background: linear-gradient(135deg, #d97757, #e2967d);
+    background: linear-gradient(135deg, #2f78c4, #6aa6e3);
     border-radius: 24px; padding: 1.8rem;
     margin-bottom: 1.5rem;
     position: relative; overflow: hidden;
@@ -339,9 +339,9 @@
     bottom: -40px; right: -20px;
   }
 
-  .wallet-label { font-size: 0.85rem; color: rgba(0,0,0,0.7); font-weight: 600; }
+  .wallet-label { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 600; }
   .wallet-balance { font-size: 2.8rem; font-weight: 900; color: #fff; line-height: 1; margin: 0.5rem 0; }
-  .wallet-sub { font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+  .wallet-sub { font-size: 0.8rem; color: rgba(255,255,255,0.8); }
 
   .wallet-actions { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; }
 
@@ -390,7 +390,7 @@
 
   .profile-avatar {
     width: 64px; height: 64px; border-radius: 50%;
-    background: linear-gradient(135deg, #d97757, #e2967d);
+    background: linear-gradient(135deg, #2f78c4, #6aa6e3);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.8rem; font-weight: 900; color: #fff;
   }
@@ -465,9 +465,33 @@
 
   .modal-confirm {
     width: 100%; padding: 0.9rem;
-    background: linear-gradient(135deg, #d97757, #e2967d);
+    background: linear-gradient(135deg, #2f78c4, #6aa6e3);
     border: none; border-radius: 14px;
     color: #fff; font-family: 'Cairo', sans-serif;
     font-size: 0.9rem; font-weight: 700; cursor: pointer;
   }
 
+
+
+
+  /* ===== BOOKING SCREEN REDESIGN (light + blue) ===== */
+  .booking-card { box-shadow: 0 -12px 40px rgba(0,0,0,0.12); }
+  .drag-handle { background: #cfd8e4; opacity: 1; }
+  .section-title { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.8rem 0 0.6rem; }
+  .input-group { border: none; border-radius: 18px; padding: 0.2rem 0.4rem; }
+  .input-row { border-bottom: 1px solid rgba(0,0,0,0.07); padding: 0.8rem 0.6rem; }
+  .input-value { font-size: 1rem; font-weight: 700; }
+  .car-types { flex-direction: column; gap: 0.55rem; overflow: visible; }
+  .car-type {
+    display: flex; align-items: center; gap: 0.9rem; text-align: right;
+    border: 1.5px solid transparent; border-radius: 16px; padding: 0.7rem 0.9rem; min-width: 0;
+  }
+  .car-type.selected { border-color: var(--accent); background: rgba(var(--accent-rgb),0.08); box-shadow: none; }
+  .car-type-icon { margin: 0; width: 46px; text-align: center; font-size: 1.7rem; }
+  .car-info { flex: 1; }
+  .car-type-name { font-size: 0.95rem; font-weight: 700; }
+  .car-sub { font-size: 0.72rem; color: var(--muted); }
+  .car-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #b6c1d1; flex-shrink: 0; }
+  .car-type.selected .car-radio { border: 6px solid var(--accent); }
+  .book-btn { border-radius: 18px; padding: 1.05rem; font-weight: 900; font-size: 1.05rem; box-shadow: 0 8px 24px rgba(var(--accent-rgb),0.35); }
+  .book-note { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 0.6rem; }
