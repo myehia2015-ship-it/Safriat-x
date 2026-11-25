@@ -843,6 +843,18 @@ function openClientModal() {
   document.getElementById('client-modal').style.display = 'flex';
 }
 
+function getPayMethod() {
+  const el = document.querySelector('input[name="pay-method"]:checked');
+  return el ? el.value : 'كاش';
+}
+
+function updatePayMethod() {
+  const m = getPayMethod();
+  document.getElementById('pay-method-name').textContent = m;
+  document.getElementById('pay-vodafone-info').style.display =
+    m === 'كاش' ? 'none' : 'block';
+}
+
 function closeClientModal() {
   document.getElementById('client-modal').style.display = 'none';
 }
@@ -880,6 +892,7 @@ function notifyWhatsAppNewBooking(booking) {
       car: booking.car,
       date: booking.tripDate,
       time: booking.tripTime,
+      paymentMethod: booking.paymentMethod,
       location: booking.locationLink
     })
   }).catch((err) => {
@@ -949,6 +962,7 @@ function confirmBooking() {
     km: document.getElementById('km-display').textContent,
     time: new Date().toLocaleString('ar-EG'),
     status: 'جديد',
+    paymentMethod: getPayMethod(),
     clientUid: auth.currentUser.uid
   };
 
@@ -965,7 +979,8 @@ function confirmBooking() {
     if (savedToFirebase) {
       // الحجز اتسجل بنجاح - نعرض شاشة تأكيد بسيطة بدل شاشة تتبع السائق
       document.getElementById('success-msg').textContent =
-        `هيتم التواصل معك على ${phoneClean} لتأكيد تفاصيل رحلتك.`;
+        `هيتم التواصل معك على ${phoneClean} لتأكيد تفاصيل رحلتك. الدفع: ${booking.paymentMethod}.` +
+        (booking.paymentMethod === 'كاش' ? '' : ' ابعت صورة التحويل على واتساب 01098403012');
       document.getElementById('booking-success-modal').classList.add('visible');
     }
     // لو فشل الحفظ على Firebase، مودال الخطأ (booking-error-modal) هو اللي ظاهر بالفعل ومفيهوش داعي لعرض تأكيد فوقه

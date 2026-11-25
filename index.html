@@ -56,7 +56,6 @@
     </div>
     <div onclick="showScreen('home');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🏠 <span>الرئيسية</span></div>
     <div onclick="showScreen('trips');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🗺️ <span>رحلاتي</span></div>
-    <div onclick="showScreen('wallet');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">💳 <span>المحفظة</span></div>
     <div onclick="showScreen('profile');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">👤 <span>حسابي</span></div>
   </div>
   <div id="menu-overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:998;display:none;"></div>
@@ -141,6 +140,7 @@
 
       <button class="book-btn" onclick="openClientModal()">احجز الآن</button>
       <div class="book-note">السعر نهائي، من غير فصال ولا مكالمات</div>
+      <div class="book-note" style="margin-top:0.4rem;font-weight:700;">💵 الدفع كاش للسائق أو تحويل فودافون كاش / إنستا باي</div>
     </div>
   </div>
 
@@ -232,6 +232,24 @@
         </div>
       </div>
 
+      <!-- طريقة الدفع -->
+      <div style="background:var(--card);border-radius:14px;padding:1rem;margin-bottom:1rem;border:1px solid var(--border);">
+        <div style="font-size:0.8rem;font-weight:700;margin-bottom:0.6rem;color:var(--muted);">طريقة الدفع</div>
+        <label style="display:flex;align-items:center;gap:0.6rem;font-size:0.9rem;margin-bottom:0.5rem;cursor:pointer;">
+          <input type="radio" name="pay-method" value="كاش" checked onchange="updatePayMethod()"> 💵 كاش للسائق عند الرحلة
+        </label>
+        <label style="display:flex;align-items:center;gap:0.6rem;font-size:0.9rem;cursor:pointer;">
+          <input type="radio" name="pay-method" value="فودافون كاش" onchange="updatePayMethod()"> 📱 تحويل فودافون كاش
+        </label>
+        <label style="display:flex;align-items:center;gap:0.6rem;font-size:0.9rem;margin-top:0.5rem;cursor:pointer;">
+          <input type="radio" name="pay-method" value="إنستا باي" onchange="updatePayMethod()"> 🏦 تحويل إنستا باي
+        </label>
+        <div id="pay-vodafone-info" style="display:none;margin-top:0.7rem;padding:0.7rem;border-radius:10px;border:1px dashed var(--border);font-size:0.85rem;text-align:center;">
+          حوّل المبلغ عن طريق <span id="pay-method-name" style="font-weight:700;"></span> على الرقم:<br>
+          <span style="font-size:1.1rem;font-weight:900;direction:ltr;display:inline-block;">01098403012</span>
+        </div>
+      </div>
+
       <div style="display:flex;gap:0.8rem;">
         <button onclick="closeClientModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
         <button id="confirm-booking-btn" onclick="confirmBooking()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد الحجز</button>
@@ -315,59 +333,6 @@
       <div style="font-size:3rem;">🗺️</div>
       <div style="margin-top:0.5rem;">لا توجد رحلات بعد</div>
       <div style="font-size:0.8rem;margin-top:0.3rem;">احجز رحلتك الأولى الآن!</div>
-    </div>
-  </div>
-
-  <!-- WALLET SCREEN -->
-  <div id="screen-wallet" class="screen">
-    <div class="wallet-card">
-      <div class="wallet-label">رصيدك الحالي</div>
-      <div class="wallet-balance">350 ج.م</div>
-      <div class="wallet-sub">محفظة سفريات اكس الإلكترونية</div>
-    </div>
-
-    <div class="wallet-actions">
-      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">➕ شحن الرصيد</button>
-      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">💳 طرق الدفع</button>
-      <button class="wallet-btn" onclick="showToast('قريباً! 🚧')">🎁 الكوبونات</button>
-    </div>
-
-    <div class="transactions-title">آخر المعاملات</div>
-
-    <div class="transaction">
-      <div class="tx-icon trip">🚗</div>
-      <div class="tx-info">
-        <div class="tx-title">رحلة المعادي</div>
-        <div class="tx-date">اليوم، 10:30 ص</div>
-      </div>
-      <div class="tx-amount debit">-85 ج.م</div>
-    </div>
-
-    <div class="transaction">
-      <div class="tx-icon topup">💰</div>
-      <div class="tx-info">
-        <div class="tx-title">شحن رصيد</div>
-        <div class="tx-date">أمس، 9:00 ص</div>
-      </div>
-      <div class="tx-amount credit">+200 ج.م</div>
-    </div>
-
-    <div class="transaction">
-      <div class="tx-icon trip">🚗</div>
-      <div class="tx-info">
-        <div class="tx-title">رحلة مدينة نصر</div>
-        <div class="tx-date">أمس، 7:15 م</div>
-      </div>
-      <div class="tx-amount debit">-120 ج.م</div>
-    </div>
-
-    <div class="transaction">
-      <div class="tx-icon trip">🚌</div>
-      <div class="tx-info">
-        <div class="tx-title">رحلة حلوان</div>
-        <div class="tx-date">25 فبراير</div>
-      </div>
-      <div class="tx-amount debit">-40 ج.م</div>
     </div>
   </div>
 
