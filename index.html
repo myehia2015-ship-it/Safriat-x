@@ -43,7 +43,7 @@
   <div class="topbar">
     <div style="display:flex;gap:0.6rem;align-items:center">
       <div class="notif-btn" onclick="toggleMenu()" aria-label="القائمة الجانبية" role="button">☰</div>
-      <div class="topbar-avatar" id="topbar-avatar-initial" onclick="showScreen('profile')" aria-label="الملف الشخصي" role="button">أ</div>
+      <div class="topbar-avatar" id="topbar-avatar-initial" onclick="showScreen('profile')" aria-label="الملف الشخصي" role="button"></div>
     </div>
     <div class="topbar-brand" id="logo-tap-trigger" onclick="handleLogoTap()" style="color:#2f78c4;font-size:1rem;margin-right:auto;margin-left:0;cursor:pointer;user-select:none;">سفريات اكس 🚗</div>
   </div>
@@ -339,11 +339,10 @@
   <!-- PROFILE SCREEN -->
   <div id="screen-profile" class="screen">
     <div class="profile-hero">
-      <div class="profile-avatar" id="profile-avatar-initial">أ</div>
+      <div class="profile-avatar" id="profile-avatar-initial"></div>
       <div>
-        <div class="profile-name" id="profile-name-display">أحمد محمود</div>
-        <div class="profile-phone" id="profile-phone-display">+20 1234567890</div>
-        <div class="profile-rating">⭐ 4.9 • 47 رحلة</div>
+        <div class="profile-name" id="profile-name-display">ضيف</div>
+        <div class="profile-phone" id="profile-phone-display">لم يتم إضافة رقم</div>
       </div>
     </div>
 
@@ -386,6 +385,14 @@
 <div class="input-modal" id="edit-profile-modal" onclick="if(event.target===this) closeEditProfileModal()">
   <div class="input-modal-card">
     <div class="modal-title">تعديل الملف الشخصي</div>
+    <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.8rem;">
+      <div class="profile-avatar" id="edit-profile-avatar" style="width:56px;height:56px;flex-shrink:0;"></div>
+      <div style="display:flex;flex-direction:column;gap:0.4rem;">
+        <button type="button" class="modal-confirm" style="margin:0;padding:0.5rem 0.8rem;font-size:0.85rem;" onclick="document.getElementById('edit-profile-photo').click()">📷 اختار صورة</button>
+        <button type="button" style="background:none;border:none;color:var(--muted);font-size:0.8rem;cursor:pointer;" onclick="removeProfilePhoto()">حذف الصورة</button>
+      </div>
+      <input type="file" id="edit-profile-photo" accept="image/*" style="display:none" onchange="onProfilePhotoPicked(this)">
+    </div>
     <input class="modal-input" id="edit-profile-name" placeholder="اسمك بالكامل" autocomplete="off">
     <input class="modal-input" id="edit-profile-phone" type="tel" placeholder="رقم تليفونك" autocomplete="off">
     <button class="modal-confirm" onclick="saveProfile()">💾 حفظ التعديلات</button>

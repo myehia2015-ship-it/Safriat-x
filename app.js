@@ -1388,25 +1388,39 @@ const PROFILE_KEY = 'safariat_profile';
 // رقم واتساب الدعم الفني - غيّره لرقمك الحقيقي (بصيغة دولية بدون + أو أصفار، مثال: 201001234567)
 const SUPPORT_WHATSAPP_NUMBER = '201098403012';
 
+// صورة افتراضية (أيقونة شخص) - والعميل يقدر يبدلها بصورته، بتتحفظ على جهازه فقط
+const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#cfd8e3"/><circle cx="32" cy="24" r="11" fill="#fff"/><path d="M10 64c0-14 10-23 22-23s22 9 22 23z" fill="#fff"/></svg>');
+let pendingPhoto; // undefined = من غير تغيير، '' = حذف، غير كده = صورة جديدة
+
+function applyAvatar(photo) {
+  ['profile-avatar-initial', 'topbar-avatar-initial', 'edit-profile-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = '';
+    el.style.backgroundImage = 'url("' + (photo || DEFAULT_AVATAR) + '")';
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+  });
+}
+
 function loadProfile() {
   try {
-    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
-    if (saved && saved.name) {
-      document.getElementById('profile-name-display').textContent = saved.name;
-      document.getElementById('profile-phone-display').textContent = saved.phone || 'لم يتم إضافة رقم';
-      const initial = saved.name.trim().charAt(0) || 'م';
-      document.getElementById('profile-avatar-initial').textContent = initial;
-      document.getElementById('topbar-avatar-initial').textContent = initial;
-    }
+    const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {};
+    document.getElementById('profile-name-display').textContent = saved.name || 'ضيف';
+    document.getElementById('profile-phone-display').textContent = saved.phone || 'لم يتم إضافة رقم';
+    applyAvatar(saved.photo);
   } catch (e) {
     console.error('profile load error:', e);
+    applyAvatar(null);
   }
 }
 
 function openEditProfileModal() {
   const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {};
-  document.getElementById('edit-profile-name').value = saved.name || document.getElementById('profile-name-display').textContent;
+  pendingPhoto = undefined;
+  document.getElementById('edit-profile-name').value = saved.name || '';
   document.getElementById('edit-profile-phone').value = saved.phone || '';
+  applyAvatar(saved.photo);
   document.getElementById('edit-profile-modal').classList.add('visible');
 }
 
@@ -1414,14 +1428,49 @@ function closeEditProfileModal() {
   document.getElementById('edit-profile-modal').classList.remove('visible');
 }
 
+// تصغير الصورة على الجهاز (256px) قبل الحفظ عشان متبقاش تقيلة
+function onProfilePhotoPicked(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 256;
+      const side = Math.min(img.width, img.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      canvas.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+      pendingPhoto = canvas.toDataURL('image/jpeg', 0.8);
+      document.getElementById('edit-profile-avatar').style.backgroundImage = 'url("' + pendingPhoto + '")';
+    };
+    img.onerror = () => showToast('⚠️ الصورة دي مش مدعومة، جرب صورة تانية');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeProfilePhoto() {
+  pendingPhoto = '';
+  document.getElementById('edit-profile-avatar').style.backgroundImage = 'url("' + DEFAULT_AVATAR + '")';
+}
+
 function saveProfile() {
   const name = document.getElementById('edit-profile-name').value.trim();
   const phone = document.getElementById('edit-profile-phone').value.trim();
-  if (!name) {
+  const old = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {};
+  const photo = pendingPhoto === undefined ? (old.photo || '') : pendingPhoto;
+  if (!name && !phone && !photo) {
     showToast('⚠️ اكتب اسمك الأول');
     return;
   }
-  localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, phone }));
+  try {
+    localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, phone, photo }));
+  } catch (e) {
+    showToast('⚠️ مقدرناش نحفظ الصورة، جرب صورة تانية');
+    return;
+  }
   loadProfile();
   closeEditProfileModal();
   showToast('✅ تم حفظ بياناتك، وهتتملى تلقائياً وقت الحجز');
@@ -1434,10 +1483,7 @@ function openSupportChat() {
 
 function logoutUser() {
   localStorage.removeItem(PROFILE_KEY);
-  document.getElementById('profile-name-display').textContent = 'ضيف';
-  document.getElementById('profile-phone-display').textContent = 'لم يتم إضافة رقم';
-  document.getElementById('profile-avatar-initial').textContent = 'ض';
-  document.getElementById('topbar-avatar-initial').textContent = 'ض';
+  loadProfile();
   showScreen('home');
   showToast('👋 تم تسجيل الخروج ومسح بياناتك المحفوظة على الجهاز ده');
 }
