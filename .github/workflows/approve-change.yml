@@ -1,0 +1,41 @@
+name: Apply approved change
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  apply:
+    if: github.event.comment.body == '/approve' && github.event.comment.user.login == 'myehia2015-ship-it' && !github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Get and apply the diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          gh api "repos/${{ github.repository }}/issues/$ISSUE/comments" --paginate \
+            | jq -rs '[.[][] | select(.user.login=="myehia2015-ship-it" and .body!="/approve")] | last | .body' \
+            | sed '/^```/d' | tr -d '\r' > /tmp/change.diff
+          test -s /tmp/change.diff
+          git apply --check /tmp/change.diff
+          git apply /tmp/change.diff
+          git config user.name "change-bot"
+          git config user.email "change-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "change request #$ISSUE (approved)"
+          git push origin main
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SAFARIAT_X }}
+          channelId: live
+          projectId: safariat-x
+      - name: Close issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }} --comment "Published."
