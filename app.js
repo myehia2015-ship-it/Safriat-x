@@ -391,6 +391,7 @@ function getDistance(from, to) {
 }
 
 let lastComputedPriceValue = null; // آخر سعر رقمي محسوب فعليًا - بيتبعت مع الحجز عشان تتأكد فايربيز منه
+let destMapPickCoords = null; // إحداثيات الوجهة لو اتحددت بالضغط على الخريطة (مش من قائمة المحافظات)
 
 function autoCalcPrice() {
   const from = document.getElementById('from-text').textContent.trim();
@@ -403,12 +404,18 @@ function autoCalcPrice() {
     return;
   }
 
-  const km = getDistance(from, to);
+  let km = getDistance(from, to);
 
   if (km === null || km === undefined) {
-    priceCard.style.display = 'none';
-    lastComputedPriceValue = null;
-    return;
+    // الوجهة ممكن تكون اتحددت من الخريطة باسم مش موجود في جدول المحافظات:
+    // نحسب المسافة من الإحداثيات بدل ما نخفي كارت السعر ونمنع الحجز
+    if (destMapPickCoords && userLat && userLng) {
+      km = calcRealDistance(userLat, userLng, destMapPickCoords.lat, destMapPickCoords.lng);
+    } else {
+      priceCard.style.display = 'none';
+      lastComputedPriceValue = null;
+      return;
+    }
   }
   if (km === 0) {
     priceCard.style.display = 'block';
@@ -423,7 +430,7 @@ function autoCalcPrice() {
   if (isAirportRoute(from, to)) {
     total = Math.max(total, AIRPORT_MIN_PRICE);
   }
-  const mins = Math.round(km * 1.2);
+  const mins = Math.round(km * 0.8); // 0.8 دقيقة/كم ≈ 75 كم/س، أقرب للواقع من 1.2 (القاهرة-إسكندرية ~3 ساعات)
   priceCard.style.display = 'block';
   document.getElementById('km-display').textContent = km + ' كم';
   document.getElementById('price-est').textContent = total.toLocaleString() + ' ج.م';
@@ -501,6 +508,7 @@ function selectLocation(loc) {
   } else {
     document.getElementById('to-text').textContent = loc;
     document.getElementById('to-text').style.color = 'var(--text)';
+    destMapPickCoords = null; // وجهة من القائمة - ملهاش علاقة بأي اختيار سابق من الخريطة
     showBothMarkers(loc);
   }
 
@@ -561,6 +569,7 @@ function handleMapClick(lat, lng) {
       } else {
         document.getElementById('to-text').textContent = placeName;
         document.getElementById('to-text').style.color = 'var(--text)';
+        destMapPickCoords = { lat, lng };
 
         if (destMarkerGlobal) map.removeLayer(destMarkerGlobal);
         destMarkerGlobal = L.marker([lat, lng], { icon: makeDestIcon() }).addTo(map);
@@ -587,7 +596,7 @@ function handleMapClick(lat, lng) {
         document.getElementById('price-card').style.display = 'block';
         document.getElementById('km-display').textContent = km + ' كم';
         document.getElementById('price-est').textContent = total + ' ج.م';
-        document.getElementById('time-display').textContent = Math.round(km * 1.2) + ' دقيقة';
+        document.getElementById('time-display').textContent = Math.round(km * 0.8) + ' دقيقة';
         document.getElementById('price-detail').textContent = km + ' كم × ' + carPrice + ' ج.م/كم = ' + total + ' ج.م';
         lastComputedPriceValue = total;
       }
@@ -601,6 +610,9 @@ function handleMapClick(lat, lng) {
         userLat = lat; userLng = lng;
       } else {
         document.getElementById('to-text').textContent = placeName;
+        document.getElementById('to-text').style.color = 'var(--text)';
+        destMapPickCoords = { lat, lng };
+        autoCalcPrice();
       }
       cancelMapPick();
     });
@@ -635,6 +647,7 @@ function confirmLocation() {
     } else {
       document.getElementById('to-text').textContent = val;
       document.getElementById('to-text').style.color = 'var(--text)';
+      destMapPickCoords = null; // وجهة من القائمة - ملهاش علاقة بأي اختيار سابق من الخريطة
       showBothMarkers(val);
     }
     autoCalcPrice();
@@ -789,7 +802,8 @@ function openClientModal() {
   const dateInput = document.getElementById('client-trip-date');
   const timeInput = document.getElementById('client-trip-time');
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  // التاريخ المحلي مش UTC: toISOString بترجع توقيت جرينتش فبتطلع تاريخ امبارح بين 12 و3 الفجر بتوقيت مصر
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   dateInput.min = todayStr;
   if (!dateInput.value) dateInput.value = todayStr;
   if (!timeInput.value) timeInput.value = now.toTimeString().slice(0, 5);
@@ -1424,3 +1438,4 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
