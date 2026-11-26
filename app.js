@@ -317,7 +317,7 @@ function showToast(msg) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'toast-msg';
-    toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:0.7rem 1.2rem;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:opacity 0.3s;white-space:nowrap;font-family:Cairo,sans-serif;border:1px solid rgba(47,120,196,0.3);';
+    toast.style.cssText = 'position:fixed;top:5rem;left:50%;transform:translateX(-50%);pointer-events:none;max-width:90vw;background:#222;color:#fff;padding:0.7rem 1.2rem;border-radius:50px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:opacity 0.3s;white-space:normal;text-align:center;font-family:Cairo,sans-serif;border:1px solid rgba(47,120,196,0.3);';
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
@@ -1493,12 +1493,17 @@ function closeEditProfileModal() {
 // تصغير الصورة على الجهاز (256px) قبل الحفظ عشان متبقاش تقيلة
 function onProfilePhotoPicked(input) {
   const file = input.files && input.files[0];
-  input.value = '';
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const img = new Image();
-    img.onload = () => {
+  if (file.size > 25 * 1024 * 1024) {
+    input.value = '';
+    showToast('⚠️ الصورة كبيرة أوي، اختار صورة أصغر');
+    return;
+  }
+  // بنقرأ الصورة من رابط مؤقت (أسرع وأضمن من FileReader) وبنفضي الخانة بعد ما نخلص
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    try {
       const size = 256;
       const side = Math.min(img.width, img.height);
       const canvas = document.createElement('canvas');
@@ -1506,11 +1511,19 @@ function onProfilePhotoPicked(input) {
       canvas.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
       pendingPhoto = canvas.toDataURL('image/jpeg', 0.8);
       document.getElementById('edit-profile-avatar').style.backgroundImage = 'url("' + pendingPhoto + '")';
-    };
-    img.onerror = () => showToast('⚠️ الصورة دي مش مدعومة، جرب صورة تانية');
-    img.src = reader.result;
+    } catch (err) {
+      console.error('profile photo error:', err);
+      showToast('⚠️ مقدرناش نجهز الصورة، جرب صورة تانية');
+    }
+    URL.revokeObjectURL(url);
+    input.value = '';
   };
-  reader.readAsDataURL(file);
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    input.value = '';
+    showToast('⚠️ الصورة دي مش مدعومة، جرب صورة تانية');
+  };
+  img.src = url;
 }
 
 function removeProfilePhoto() {
@@ -1520,7 +1533,7 @@ function removeProfilePhoto() {
 
 function saveProfile() {
   const name = document.getElementById('edit-profile-name').value.trim();
-  const phone = document.getElementById('edit-profile-phone').value.trim();
+  const phone = normalizeEgPhone(document.getElementById('edit-profile-phone').value.trim());
   const old = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {};
   const photo = pendingPhoto === undefined ? (old.photo || '') : pendingPhoto;
   if (!name && !phone && !photo) {
