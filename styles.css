@@ -31,15 +31,27 @@
     animation: fadeOutSplash 0.5s ease 2.5s forwards;
   }
 
+  .splash-badge {
+    width: 34vw; max-width: 150px; aspect-ratio: 1; border-radius: 26%;
+    background: linear-gradient(180deg, #4fa0e4 0%, #2864bd 100%);
+    box-shadow: 0 14px 34px rgba(30,80,150,0.35);
+    display: flex; align-items: center; justify-content: center;
+    animation: logoPop 0.6s ease both;
+  }
+  .splash-badge svg { width: 76%; height: 76%; }
+
   .splash-logo {
-    font-size: 20vw;
+    font-size: min(10.5vw, 56px);
     font-weight: 900;
-    color: #2f78c4;
-    -webkit-text-fill-color: #2f78c4;
+    color: #2462aa;
+    -webkit-text-fill-color: #2462aa;
     background: none;
     line-height: 1;
     text-align: center;
     width: 100%;
+    margin-top: 1.4rem;
+    letter-spacing: 0.04em;
+    direction: ltr;
   }
 
   .splash-tagline {
