@@ -840,6 +840,8 @@ function openClientModal() {
     document.getElementById('client-name').value = savedProfile.name || '';
     document.getElementById('client-phone').value = savedProfile.phone || '';
   }
+  pendingBookingId = null; // حجز جديد = رقم جديد
+  hideBookingError();
   document.getElementById('client-modal').style.display = 'flex';
 }
 
@@ -902,53 +904,110 @@ function notifyWhatsAppNewBooking(booking) {
 }
 
 // دالة الحجز - بتحاول تحفظ في Firebase الأول، ولو فشلت أو مش متاح تحفظ محلياً
+// بيحول الأرقام العربي لإنجليزي ويقبل +20 و0020 والمسافات والشرطات
+function normalizeEgPhone(raw) {
+  let s = String(raw || '')
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))
+    .replace(/[^\d+]/g, '');
+  s = s.replace(/^\+?0*20(?=1)/, '0');
+  if (/^1[0125]\d{8}$/.test(s)) s = '0' + s;
+  return s;
+}
+
+// رسالة رفض واضحة جوه نافذة الحجز (بدل التوست اللي بيختفي بعد ثانيتين)
+function showBookingError(msg, fieldId) {
+  const box = document.getElementById('booking-form-error');
+  box.textContent = '⚠️ ' + msg;
+  box.style.display = 'block';
+  if (navigator.vibrate) navigator.vibrate(120);
+  const f = fieldId && document.getElementById(fieldId);
+  if (f) f.focus();
+  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+function hideBookingError() {
+  const box = document.getElementById('booking-form-error');
+  if (box) box.style.display = 'none';
+}
+
+let pendingBookingId = null; // نفس الرقم لو المستخدم كرر المحاولة، عشان الحجز ميتكررش
+function saveBookingLocal(booking) {
+  bookings = bookings.filter(b => b.id !== booking.id);
+  bookings.unshift(booking);
+  localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+}
+
+// بينتظر تسجيل الدخول المجهول لحد 10 ثواني بدل ما يرفض الضغطة
+function waitForAuth(ms) {
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    (function check() {
+      if (auth.currentUser) return resolve(auth.currentUser);
+      if (Date.now() - t0 > ms) return resolve(null);
+      setTimeout(check, 200);
+    })();
+  });
+}
+
 function confirmBooking() {
+  hideBookingError();
   const name = document.getElementById('client-name').value.trim();
   const phone = document.getElementById('client-phone').value.trim();
   if (!name) {
-    showToast('⚠️ اكتب اسمك');
+    showBookingError('اكتب اسمك', 'client-name');
     return;
   }
   if (name.length < 3) {
-    showToast('⚠️ الاسم قصير أوي، اكتبه كامل');
+    showBookingError('الاسم قصير أوي، اكتبه كامل', 'client-name');
     return;
   }
   if (!phone) {
-    showToast('⚠️ اكتب رقم التليفون');
+    showBookingError('اكتب رقم التليفون', 'client-phone');
     return;
   }
-  // تحقق أقوى: رقم مصري يبدأ بـ 01 وطوله 11 رقم
-  const phoneClean = phone.replace(/\s|-/g, '');
+  const phoneClean = normalizeEgPhone(phone);
   if (!/^01[0125][0-9]{8}$/.test(phoneClean)) {
-    showToast('⚠️ رقم التليفون لازم يكون مصري صحيح (11 رقم ويبدأ بـ 01)');
+    showBookingError('رقم التليفون لازم يكون مصري صحيح (11 رقم ويبدأ بـ 01)', 'client-phone');
     return;
   }
 
   const tripDate = document.getElementById('client-trip-date').value;
   const tripTime = document.getElementById('client-trip-time').value;
   if (!tripDate || !tripTime) {
-    showToast('⚠️ اختار تاريخ ووقت المشوار');
+    showBookingError('اختار تاريخ ووقت المشوار', 'client-trip-date');
     return;
   }
-  // مش نسمح بتاريخ/وقت فات
+  // مش نسمح بتاريخ/وقت فات (سماحية 30 دقيقة عشان الوقت الافتراضي بيتحط وقت فتح النافذة)
   const selectedDT = new Date(tripDate + 'T' + tripTime);
-  if (selectedDT.getTime() < Date.now() - 5 * 60 * 1000) { // سماحية 5 دقايق
-    showToast('⚠️ مش ممكن تحجز ميعاد فات، اختار وقت قدام');
-    return;
-  }
-
-  if (!auth.currentUser) {
-    showToast('⚠️ جاري تجهيز الاتصال، حاول تاني بعد ثانية');
+  if (selectedDT.getTime() < Date.now() - 30 * 60 * 1000) {
+    showBookingError('مش ممكن تحجز ميعاد فات، اختار وقت قدام', 'client-trip-time');
     return;
   }
 
   if (lastComputedPriceValue === null || lastComputedPriceValue === undefined || lastComputedPriceValue < 0) {
-    showToast('⚠️ حصل خطأ في حساب السعر، اختار الوجهة تاني');
+    showBookingError('حصل خطأ في حساب السعر، اقفل النافذة واختار الوجهة تاني');
     return;
   }
 
+  const btn = document.getElementById('confirm-booking-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري تجهيز الاتصال...';
+  if (!firebaseReady || !auth) { submitBooking(name, phoneClean, tripDate, tripTime); return; }
+  waitForAuth(10000).then((user) => {
+    if (!user) {
+      btn.disabled = false;
+      btn.textContent = '✅ تأكيد الحجز';
+      showBookingError('مفيش اتصال بالسيرفر، اتأكد من النت وجرب تاني');
+      return;
+    }
+    submitBooking(name, phoneClean, tripDate, tripTime);
+  });
+}
+
+function submitBooking(name, phoneClean, tripDate, tripTime) {
+  if (!pendingBookingId) pendingBookingId = Date.now();
   const booking = {
-    id: Date.now(),
+    id: pendingBookingId,
     name,
     phone: phoneClean,
     from: document.getElementById('from-text').textContent,
@@ -963,7 +1022,7 @@ function confirmBooking() {
     time: new Date().toLocaleString('ar-EG'),
     status: 'جديد',
     paymentMethod: getPayMethod(),
-    clientUid: auth.currentUser.uid
+    clientUid: auth.currentUser ? auth.currentUser.uid : null
   };
 
   const btn = document.getElementById('confirm-booking-btn');
@@ -991,14 +1050,14 @@ function confirmBooking() {
     // بنحط مهلة 8 ثواني: لو الاتصال بـ Firebase علّق (شبكة بتمنع الـ WebSocket مثلاً)
     // الزرار مش هيفضل واقف للأبد - هيرجع لحفظ محلي ويوضحلك في التوست
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('timeout')), 8000);
+      setTimeout(() => reject(new Error('timeout')), 15000);
     });
 
     Promise.race([db.ref('bookings/' + booking.id).set(booking), timeoutPromise])
       .then(() => {
         // نحدث النسخة المحلية كمان (كـ cache للعرض السريع)
-        bookings.unshift(booking);
-        localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+        saveBookingLocal(booking);
+        pendingBookingId = null;
         finishBooking(true);
         // نبعت تنبيه واتساب فوري عبر Pipedream - مش حرج لو فشل (الحجز نفسه اتحفظ بنجاح بالفعل)
         notifyWhatsAppNewBooking(booking);
@@ -1006,10 +1065,9 @@ function confirmBooking() {
       .catch((err) => {
         console.error('Firebase save error:', err);
         // فشل الحفظ على فايربيز (أو استنى كتير) - نحفظ محلياً كـ fallback عشان الحجز ميضيعش
-        bookings.unshift(booking);
-        localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+        saveBookingLocal(booking);
         const detail = err.message === 'timeout'
-          ? 'السبب: الاتصال بسيرفر Firebase استغرق أكتر من 8 ثواني (timeout). ده غالباً بسبب الشبكة بتمنع الاتصال، أو Realtime Database لسه مش متظبطة صح.'
+          ? 'السبب: الاتصال بسيرفر Firebase استغرق أكتر من 15 ثانية (timeout). ده غالباً بسبب الشبكة بتمنع الاتصال، أو Realtime Database لسه مش متظبطة صح.'
           : 'كود الخطأ: ' + (err.code || 'غير معروف') + '\nالتفاصيل: ' + err.message;
         document.getElementById('booking-error-detail').textContent = detail;
         document.getElementById('booking-error-modal').style.display = 'flex';
@@ -1017,8 +1075,7 @@ function confirmBooking() {
       });
   } else {
     // Firebase مش مضبوط أو فشل التحميل من البداية - نحفظ محلياً بس، ولازم نوضح ده بوضوح للمستخدم
-    bookings.unshift(booking);
-    localStorage.setItem('safariat_bookings', JSON.stringify(bookings));
+    saveBookingLocal(booking);
     document.getElementById('booking-error-detail').textContent =
       'السبب: مكتبة Firebase مقدرتش تتحمل في المتصفح أصلاً (firebaseReady = false من ساعة ما الصفحة فتحت). ' +
       'الاحتمالات: 1) في إضافة أو إعداد على المتصفح بيمنع تحميل سكريبتات من gstatic.com. ' +
@@ -1480,6 +1537,34 @@ function openSupportChat() {
   const msg = encodeURIComponent('مرحباً، محتاج مساعدة بخصوص تطبيق سفريات اكس 🚗');
   window.open(`https://wa.me/${SUPPORT_WHATSAPP_NUMBER}?text=${msg}`, '_blank');
 }
+
+// ========== الإشعارات / الخصوصية / التقييم ==========
+const NOTIF_KEY = 'safariat_notif';
+function closeSimpleModal(id) {
+  document.getElementById(id).classList.remove('visible');
+}
+function openNotifModal() {
+  const s = JSON.parse(localStorage.getItem(NOTIF_KEY) || 'null') || { bookings: true, offers: false };
+  document.getElementById('notif-bookings').checked = !!s.bookings;
+  document.getElementById('notif-offers').checked = !!s.offers;
+  document.getElementById('notif-modal').classList.add('visible');
+}
+function saveNotifSettings() {
+  const s = {
+    bookings: document.getElementById('notif-bookings').checked,
+    offers: document.getElementById('notif-offers').checked
+  };
+  localStorage.setItem(NOTIF_KEY, JSON.stringify(s));
+  if ((s.bookings || s.offers) && 'Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  closeSimpleModal('notif-modal');
+  showToast('✅ تم حفظ إعدادات الإشعارات');
+}
+function openPrivacyModal() {
+  document.getElementById('privacy-modal').classList.add('visible');
+}
+
 
 function logoutUser() {
   localStorage.removeItem(PROFILE_KEY);

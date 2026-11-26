@@ -250,6 +250,8 @@
         </div>
       </div>
 
+      <div id="booking-form-error" style="display:none;background:rgba(220,53,69,0.12);border:1px solid #dc3545;color:#ff6b78;border-radius:12px;padding:0.7rem 0.9rem;margin-bottom:0.8rem;font-size:0.88rem;font-weight:700;text-align:center;"></div>
+
       <div style="display:flex;gap:0.8rem;">
         <button onclick="closeClientModal()" style="flex:1;padding:0.9rem;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.9rem;cursor:pointer;">إلغاء</button>
         <button id="confirm-booking-btn" onclick="confirmBooking()" style="flex:2;padding:0.9rem;background:linear-gradient(135deg,#2f78c4,#6aa6e3);border:none;border-radius:14px;color:#fff;font-family:'Cairo',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">✅ تأكيد الحجز</button>
@@ -349,14 +351,13 @@
     <div class="menu-section">
       <div class="menu-section-title">الحساب</div>
       <div class="menu-item" onclick="openEditProfileModal()"><div class="menu-item-icon">👤</div><div class="menu-item-text">تعديل الملف الشخصي</div><div class="menu-arrow">›</div></div>
-      <div class="menu-item" onclick="showToast('🔔 إعدادات الإشعارات قريباً')"><div class="menu-item-icon">🔔</div><div class="menu-item-text">الإشعارات</div><div class="menu-arrow">›</div></div>
-      <div class="menu-item" onclick="showToast('🔒 صفحة الأمان والخصوصية قريباً')"><div class="menu-item-icon">🔒</div><div class="menu-item-text">الأمان والخصوصية</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="openNotifModal()"><div class="menu-item-icon">🔔</div><div class="menu-item-text">الإشعارات</div><div class="menu-arrow">›</div></div>
+      <div class="menu-item" onclick="openPrivacyModal()"><div class="menu-item-icon">🔒</div><div class="menu-item-text">الأمان والخصوصية</div><div class="menu-arrow">›</div></div>
     </div>
 
     <div class="menu-section">
       <div class="menu-section-title">المساعدة</div>
       <div class="menu-item" onclick="openSupportChat()"><div class="menu-item-icon">💬</div><div class="menu-item-text">الدعم الفني</div><div class="menu-arrow">›</div></div>
-      <div class="menu-item" onclick="showToast('❓ صفحة الأسئلة الشائعة قريباً')"><div class="menu-item-icon">❓</div><div class="menu-item-text">الأسئلة الشائعة</div><div class="menu-arrow">›</div></div>
       <div class="menu-item" onclick="showToast('⭐ شكراً لدعمك! رابط التقييم هيتضاف قريباً')"><div class="menu-item-icon">⭐</div><div class="menu-item-text">قيّم التطبيق</div><div class="menu-arrow">›</div></div>
     </div>
 
@@ -396,6 +397,47 @@
     <input class="modal-input" id="edit-profile-name" placeholder="اسمك بالكامل" autocomplete="off">
     <input class="modal-input" id="edit-profile-phone" type="tel" placeholder="رقم تليفونك" autocomplete="off">
     <button class="modal-confirm" onclick="saveProfile()">💾 حفظ التعديلات</button>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS MODAL -->
+<div class="input-modal" id="notif-modal" onclick="if(event.target===this) closeSimpleModal('notif-modal')">
+  <div class="input-modal-card">
+    <div class="modal-title">🔔 الإشعارات</div>
+    <label style="display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-bottom:1px solid var(--border);font-size:0.95rem;">
+      <span>تحديثات حجوزاتي</span>
+      <input type="checkbox" id="notif-bookings" style="width:22px;height:22px;">
+    </label>
+    <label style="display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-bottom:1px solid var(--border);font-size:0.95rem;">
+      <span>العروض والخصومات</span>
+      <input type="checkbox" id="notif-offers" style="width:22px;height:22px;">
+    </label>
+    <div style="font-size:0.75rem;color:var(--muted);margin:0.7rem 0;">اختياراتك بتتحفظ على جهازك. التنبيهات بتظهر لما تسمح للمتصفح بالإشعارات.</div>
+    <button class="modal-confirm" onclick="saveNotifSettings()">💾 حفظ</button>
+  </div>
+</div>
+
+<!-- PRIVACY MODAL -->
+<div class="input-modal" id="privacy-modal" onclick="if(event.target===this) closeSimpleModal('privacy-modal')">
+  <div class="input-modal-card">
+    <div class="modal-title">🔒 الأمان والخصوصية</div>
+    <div style="max-height:55vh;overflow-y:auto;font-size:0.88rem;line-height:1.9;text-align:right;">
+      <b>البيانات اللي بنجمعها</b><br>
+      اسمك، رقم تليفونك، تفاصيل رحلتك (الانطلاق والوجهة والموعد ونوع السيارة وطريقة الدفع)، ورابط موقعك على الخريطة وقت الحجز لو سمحت للمتصفح بتحديد الموقع.<br><br>
+      <b>ليه بنستخدمها</b><br>
+      عشان نأكد حجزك ونتواصل معاك ونرتب الرحلة مع السائق. مش بنستخدمها في إعلانات ومش بنبيعها لأي جهة.<br><br>
+      <b>فين بتتخزن</b><br>
+      الحجوزات بتتخزن على قاعدة بيانات Firebase بحساب مجهول الهوية (من غير إيميل أو باسورد). بيانات ملفك الشخصي وصورتك بتتحفظ على جهازك بس.<br><br>
+      <b>مين يشوفها</b><br>
+      إنت وإدارة التطبيق فقط. بنبعت إشعار بالحجز الجديد للإدارة على واتساب وإيميل عشان نبدأ التنفيذ.<br><br>
+      <b>الموقع</b><br>
+      بنستخدم موقعك بس لتحديد نقطة الانطلاق وحساب المسافة. تقدر تمنعه من إعدادات المتصفح وتختار نقطة الانطلاق بنفسك.<br><br>
+      <b>مسح بياناتك</b><br>
+      من القائمة اضغط تسجيل الخروج لمسح بياناتك المحفوظة على الجهاز. ولطلب مسح حجوزاتك من عندنا كلمنا من الدعم الفني.<br><br>
+      <b>تواصل معانا</b><br>
+      لأي سؤال عن الخصوصية اضغط الدعم الفني من القائمة.
+    </div>
+    <button class="modal-confirm" onclick="closeSimpleModal('privacy-modal')">تمام</button>
   </div>
 </div>
 
