@@ -49,14 +49,26 @@
   </div>
 
   <!-- SIDE MENU -->
-  <div id="side-menu" style="position:fixed;top:0;right:0;width:70%;max-width:280px;height:100vh;background:var(--surface);z-index:999;transform:translateX(100%);transition:transform 0.3s ease;padding:2rem 1.2rem;border-left:1px solid var(--border);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
-      <div style="font-size:1.1rem;font-weight:900;color:#2f78c4;">سفريات اكس</div>
-      <div onclick="toggleMenu()" style="cursor:pointer;font-size:1.3rem;">✕</div>
+  <div id="side-menu" class="side-drawer">
+    <div class="drawer-head">
+      <div class="drawer-avatar" id="side-menu-avatar"></div>
+      <div class="drawer-name" id="side-menu-name">ضيف</div>
+      <div class="drawer-close" onclick="toggleMenu()" aria-label="إغلاق" role="button">‹</div>
     </div>
-    <div onclick="showScreen('home');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🏠 <span>الرئيسية</span></div>
-    <div onclick="showScreen('trips');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">🗺️ <span>رحلاتي</span></div>
-    <div onclick="showScreen('profile');toggleMenu();" style="display:flex;align-items:center;gap:0.8rem;padding:0.9rem;border-radius:12px;cursor:pointer;margin-bottom:0.5rem;background:var(--card);">👤 <span>حسابي</span></div>
+    <div class="drawer-list">
+    <div class="drawer-item" onclick="showScreen('home');toggleMenu();"><span class="drawer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span><span>الرئيسية</span></div>
+    <div class="drawer-item" onclick="showScreen('trips');toggleMenu();"><span class="drawer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span>رحلاتي</span></div>
+    <div class="drawer-item" onclick="showScreen('profile');toggleMenu();"><span class="drawer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span><span>حسابي</span></div>
+    <div class="drawer-item" onclick="toggleMenu();openNotifModal();"><span class="drawer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span><span>الإشعارات</span></div>
+    <div class="drawer-item" onclick="toggleMenu();openPrivacyModal();"><span class="drawer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><span>الأمان والخصوصية</span></div>
+    <div class="drawer-item" onclick="toggleMenu();openSupportChat();"><span class="drawer-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg></span><span>الدعم الفني</span></div>
+    </div>
+    <div class="drawer-bottom">
+      <button class="drawer-cta" onclick="toggleMenu();openDriverModal();">🚗 انضم كسائق</button>
+      <div class="drawer-social">
+        <a href="https://wa.me/201098403012" target="_blank" rel="noopener" aria-label="واتساب"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-1.4-.7-2.400-1.300-3.300-2.900-.1-.2 0-.4.1-.5l.4-.5.2-.4v-.4l-.8-1.900c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.7.7-1 1.500-1 2.400 0 1 .6 2 1.100 2.700 1.300 1.800 2.900 3 4.900 3.800 1.700.6 2.300.5 3.100.3.9-.2 1.700-.8 1.900-1.600.1-.4.1-.7 0-.8z"/></svg></a>
+      </div>
+    </div>
   </div>
   <div id="menu-overlay" onclick="toggleMenu()" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:998;display:none;"></div>
 

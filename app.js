@@ -1450,7 +1450,7 @@ const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xml
 let pendingPhoto; // undefined = من غير تغيير، '' = حذف، غير كده = صورة جديدة
 
 function applyAvatar(photo) {
-  ['profile-avatar-initial', 'topbar-avatar-initial', 'edit-profile-avatar'].forEach(id => {
+  ['profile-avatar-initial', 'topbar-avatar-initial', 'edit-profile-avatar', 'side-menu-avatar'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = '';
@@ -1464,6 +1464,7 @@ function loadProfile() {
   try {
     const saved = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null') || {};
     document.getElementById('profile-name-display').textContent = saved.name || 'ضيف';
+    const sn = document.getElementById('side-menu-name'); if (sn) sn.textContent = saved.name || 'ضيف';
     document.getElementById('profile-phone-display').textContent = saved.phone || 'لم يتم إضافة رقم';
     applyAvatar(saved.photo);
   } catch (e) {
