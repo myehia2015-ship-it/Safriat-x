@@ -221,6 +221,8 @@ function makeFromIcon() {
 // وضع "ظبط نقطة الانطلاق بدقة": بيثبت دبوس في نص الخريطة والمستخدم بيحرك الخريطة تحته
 // (بالظبط زي أوبر/كريم) عشان يوصل لمكانه الفعلي لو الـ GPS مش دقيق 100%
 let fineTuneMode = false;
+const FT_ICON_CROSS = '<svg style="color:#0f766e" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
+const FT_ICON_CHECK = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.500l4.500 4.500L19 7.500"/></svg>';
 function toggleFineTune() {
   const pin = document.getElementById('center-pin');
   const btn = document.getElementById('fine-tune-btn');
@@ -229,8 +231,9 @@ function toggleFineTune() {
   if (fineTuneMode) {
     if (fromMarker) { map.removeLayer(fromMarker); fromMarker = null; }
     pin.classList.add('active');
-    btn.textContent = '✅ تأكيد نقطة الانطلاق';
-    btn.style.background = 'var(--accent)';
+    btn.innerHTML = FT_ICON_CHECK;
+    btn.classList.add('active');
+    btn.setAttribute('aria-label', 'تأكيد نقطة الانطلاق');
     map.setView([userLat, userLng], 17);
     map.on('movestart', onFineTuneMoveStart);
     map.on('moveend', onFineTuneMoveEnd);
@@ -250,8 +253,9 @@ function toggleFineTune() {
     document.getElementById('location-text').textContent = '📍 ' + nearest;
 
     fromMarker = L.marker([userLat, userLng], { icon: makeFromIcon() }).addTo(map);
-    btn.textContent = '🎯 ظبط نقطة الانطلاق بدقة';
-    btn.style.background = '#2f78c4';
+    btn.innerHTML = FT_ICON_CROSS;
+    btn.classList.remove('active');
+    btn.setAttribute('aria-label', 'ظبط نقطة الانطلاق بدقة');
     autoCalcPrice();
     showToast('✅ اتحددت نقطة انطلاقك بدقة');
   }

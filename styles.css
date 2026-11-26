@@ -89,9 +89,17 @@
   }
 
   .topbar-brand {
-    font-size: 1.5rem; font-weight: 900;
-    color: #2f78c4;
+    display: flex; align-items: center; gap: 0.5rem; direction: ltr;
+    margin-right: auto; margin-left: 0; cursor: pointer; user-select: none;
   }
+  .brand-badge {
+    width: 36px; height: 36px; border-radius: 26%; flex-shrink: 0;
+    background: linear-gradient(180deg, #4fa0e4 0%, #2864bd 100%);
+    box-shadow: 0 4px 10px rgba(30,80,150,0.3);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-badge svg { width: 76%; height: 76%; }
+  .brand-word { font-size: 1.15rem; font-weight: 900; color: #2462aa; line-height: 1; }
 
   .topbar-avatar {
     width: 38px; height: 38px; border-radius: 50%;
@@ -150,7 +158,7 @@
   .center-pin {
     position: absolute; top: 25vh; left: 50%;
     transform: translate(-50%, -100%);
-    z-index: 15; font-size: 2.2rem;
+    z-index: 15; font-size: 2.2rem; color: var(--accent);
     display: none; pointer-events: none;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
     transition: transform 0.15s ease;
@@ -159,12 +167,14 @@
   .center-pin.dragging { transform: translate(-50%, -100%) scale(1.15); }
 
   .fine-tune-btn {
-    position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
-    z-index: 20; background: #2f78c4; color: #fff; border: none;
-    border-radius: 50px; padding: 0.55rem 1.1rem; font-family: 'Cairo', sans-serif;
-    font-size: 0.8rem; font-weight: 700; cursor: pointer;
-    box-shadow: 0 4px 10px rgba(47,120,196,0.4);
+    position: absolute; bottom: 2.2rem; left: 1rem;
+    z-index: 20; width: 46px; height: 46px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: var(--accent); border: 1px solid var(--border);
+    border-radius: 50%; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(47,120,196,0.3);
   }
+  .fine-tune-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
   /* BOOKING CARD */
   .booking-card {
@@ -471,7 +481,8 @@
   }
 
   .suggestion:active { background: rgba(var(--accent-rgb),0.08); }
-  .sug-icon { font-size: 1rem; color: var(--muted); }
+  .sug-icon { font-size: 0; width: 20px; height: 20px; flex-shrink: 0; display: inline-block; background: #e5484d;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'%3E%3Cpath d='M12 21s-7-6.2-7-11.500A7 7 0 0 1 19 9.500C19 14.800 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.500' r='2.500'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'%3E%3Cpath d='M12 21s-7-6.2-7-11.500A7 7 0 0 1 19 9.500C19 14.800 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.500' r='2.500'/%3E%3C/svg%3E") center/contain no-repeat; }
   .sug-text { font-size: 0.85rem; }
   .sug-sub { font-size: 0.72rem; color: var(--muted); }
 
@@ -522,3 +533,6 @@
   .drawer-cta { width:100%; padding:0.95rem; border:none; border-radius:16px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'Cairo',sans-serif; font-size:1rem; font-weight:800; cursor:pointer; }
   .drawer-social { display:flex; justify-content:center; gap:1.6rem; margin-top:1.1rem; }
   .drawer-social a { color:var(--accent); display:flex; }
+
+  .car-type-icon { display: flex; align-items: center; justify-content: center; }
+  .sum-label { display: inline-flex; align-items: center; gap: 0.35rem; }
