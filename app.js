@@ -892,6 +892,7 @@ function notifyWhatsAppNewBooking(booking) {
     body: JSON.stringify({
       name: booking.name,
       phone: booking.phone,
+      pickupAddress: booking.pickupAddress,
       from: booking.from,
       to: booking.to,
       price: booking.price,
@@ -974,6 +975,11 @@ function confirmBooking() {
     showBookingError('رقم التليفون لازم يكون مصري صحيح (11 رقم ويبدأ بـ 01)', 'client-phone');
     return;
   }
+  const pickupAddress = document.getElementById('client-pickup-address').value.trim();
+  if (pickupAddress.length < 5) {
+    showBookingError('اكتب عنوان الاستلام بالتفصيل (الشارع ورقم العمارة على الأقل)', 'client-pickup-address');
+    return;
+  }
 
   const tripDate = document.getElementById('client-trip-date').value;
   const tripTime = document.getElementById('client-trip-time').value;
@@ -996,7 +1002,7 @@ function confirmBooking() {
   const btn = document.getElementById('confirm-booking-btn');
   btn.disabled = true;
   btn.textContent = '⏳ جاري تجهيز الاتصال...';
-  if (!firebaseReady || !auth) { submitBooking(name, phoneClean, tripDate, tripTime); return; }
+  if (!firebaseReady || !auth) { submitBooking(name, phoneClean, pickupAddress, tripDate, tripTime); return; }
   waitForAuth(10000).then((user) => {
     if (!user) {
       btn.disabled = false;
@@ -1004,16 +1010,17 @@ function confirmBooking() {
       showBookingError('مفيش اتصال بالسيرفر، اتأكد من النت وجرب تاني');
       return;
     }
-    submitBooking(name, phoneClean, tripDate, tripTime);
+    submitBooking(name, phoneClean, pickupAddress, tripDate, tripTime);
   });
 }
 
-function submitBooking(name, phoneClean, tripDate, tripTime) {
+function submitBooking(name, phoneClean, pickupAddress, tripDate, tripTime) {
   if (!pendingBookingId) pendingBookingId = Date.now();
   const booking = {
     id: pendingBookingId,
     name,
     phone: phoneClean,
+    pickupAddress,
     from: document.getElementById('from-text').textContent,
     to: document.getElementById('to-text').textContent,
     car: selectedCarType,
@@ -1039,6 +1046,7 @@ function submitBooking(name, phoneClean, tripDate, tripTime) {
     closeClientModal();
     document.getElementById('client-name').value = '';
     document.getElementById('client-phone').value = '';
+    document.getElementById('client-pickup-address').value = '';
     if (savedToFirebase) {
       // الحجز اتسجل بنجاح - نعرض شاشة تأكيد بسيطة بدل شاشة تتبع السائق
       document.getElementById('success-msg').textContent =
@@ -1322,6 +1330,7 @@ function renderBookings() {
         <div style="background:${b.status==='جديد'?'rgba(168,230,61,0.2)':'rgba(47,120,196,0.25)'};color:${b.status==='جديد'?'var(--accent)':'var(--accent2)'};border-radius:50px;padding:0.2rem 0.7rem;font-size:0.75rem;font-weight:700;">${escapeHtml(b.status)}</div>
       </div>
       <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.3rem;">📞 ${escapeHtml(b.phone)}</div>
+      ${b.pickupAddress ? `<div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.3rem;">🏠 عنوان الاستلام: ${escapeHtml(b.pickupAddress)}</div>` : ''}
       <div style="font-size:0.82rem;margin-bottom:0.2rem;">📍 <b>${escapeHtml(b.from)}</b> ← 🎯 <b>${escapeHtml(b.to)}</b></div>
       <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.2rem;">🚗 ${escapeHtml(b.car)} • ${escapeHtml(b.km)}</div>
       ${b.tripDate && b.tripTime ? `<div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.2rem;">📅 موعد المشوار: ${escapeHtml(b.tripDate)} - ${escapeHtml(b.tripTime)}</div>` : ''}
